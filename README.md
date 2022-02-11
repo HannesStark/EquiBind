@@ -20,7 +20,7 @@ or [social media](https://hannes-stark.com/). I am happy to hear from you!
 # Dataset
 
 Our preprocessed data (see dataset section in the paper Appendix) is available from [zenodo](https://zenodo.org/record/6034088). \
-The files in `data` contain the names for the time-based data split. For the no-ligand overlap split described in the main paper, these are 1) train: `old_no_newL_train` 2) train: `old_no_newL_val` 3) test: `new_names` 
+The files in `data` contain the names for the time-based data split.
 
 If you want to train one of our models with the data then: 
 1. download it from [zenodo](https://zenodo.org/record/6034088) 
