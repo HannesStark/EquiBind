@@ -1,0 +1,1 @@
+# ``binding_trainer_revised.py`` (inherits from ``Trainer``) is the standard file that is used

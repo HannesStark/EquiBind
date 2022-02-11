@@ -1,0 +1,129 @@
+batch_size: 8
+checkpoint: runs/23_noLDropoutHighLR_layers8_bs8_otL1_iL1_dim64_nAttH30_normBN_normc0_normf0_recAtomsFalse_numtrainNone_date13-01_time04-28-23.818045/last_checkpoint.pt
+clip_grad: 100
+collate_function: graph_collate_revised
+collate_params: {}
+config: runs/23_noLDropoutHighLR_layers8_bs8_otL1_iL1_dim64_nAttH30_normBN_normc0_normf0_recAtomsFalse_numtrainNone_date13-01_time04-28-23.818045/23.yml
+data_seed: 1
+
+dataset_params:
+  bsp_proteins: false
+  c_alpha_max_neighbors: 10
+  chain_radius: 10
+  dataset_size:
+  lig_graph_radius: 5
+  lig_max_neighbors:
+  min_shell_thickness: 3
+  n_jobs: 20
+  only_polar_hydrogens: false
+  pocket_cutoff: 4
+  pocket_mode: match_atoms
+  rec_graph_radius: 30
+  remove_h: false
+  subgraph_augmentation: false
+  surface_graph_cutoff: 5
+  surface_max_neighbors: 5
+  surface_mesh_cutoff: 2
+  translation_distance: 5.0
+  use_rdkit_coords: false
+  use_rec_atoms: false
+device: cuda
+eval_on_test: true
+eval_per_epochs: 0
+expensive_log_iterations: 100
+experiment_name: noLDropoutHighLR
+log_iterations: 100
+logdir: runs
+loss_func: BindingLoss
+loss_params:
+  centroid_loss_weight: 0
+  intersection_loss_weight: 1
+  intersection_sigma: 8
+  intersection_surface_ct: 1
+  key_point_alignmen_loss_weight: 1
+  ot_loss_weight: 1
+lr_scheduler:
+lr_scheduler_params:
+  factor: 0.6
+  min_lr: 8.0e-06
+  mode: max
+  patience: 10
+  verbose: true
+main_metric: rmsd_less_than_2
+main_metric_goal: max
+metrics:
+  - pearsonr
+  - rsquared
+  - mean_rmsd
+  - median_rmsd
+  - median_centroid_distance
+  - centroid_distance_less_than_2
+  - mean_centroid_distance
+  - rmsd_less_than_2
+  - rmsd_less_than_5
+minimum_epochs: 0
+model_parameters:
+  centroid_keypts_construction: false
+  centroid_keypts_construction_lig: false
+  centroid_keypts_construction_rec: false
+  cross_msgs: true
+  debug: false
+  dropout: 0.1
+  final_h_layer_norm: 0
+  iegmn_lay_hid_dim: 64
+  layer_norm: BN
+  layer_norm_coords: 0
+  leakyrelu_neg_slope: 0.01
+  lig_evolve: true
+  lig_no_softmax: false
+  move_keypts_back: true
+  n_lays: 8
+  noise_decay_rate: 0.5
+  noise_initial: 1
+  nonlin: lkyrelu
+  normalize_Z_lig_directions: false
+  normalize_Z_rec_directions: false
+  normalize_coordinate_update: true
+  num_att_heads: 30
+  num_lig_feats:
+  random_vec_dim: 0
+  random_vec_std: 1
+  rec_evolve: true
+  rec_no_softmax: false
+  rec_square_distance_scale: 10
+  residue_emb_dim: 64
+  shared_layers: false
+  skip_weight_h: 0.5
+  unnormalized_kpt_weights: false
+  use_dist_in_layers: true
+  use_edge_features_in_gmn: true
+  use_mean_node_features: true
+  use_rec_atoms: false
+  use_scalar_features: false
+  x_connection_init: 0.25
+model_type: EquiBind
+models_to_save: []
+multithreaded_seeds: []
+num_epochs: 1000000
+num_train:
+num_val:
+num_workers: 0
+optimizer: Adam
+optimizer_params:
+  lr: 0.0001
+  weight_decay: 0.0001
+patience: 150
+pin_memory: true
+sampler_parameters:
+scheduler_step_per_batch: false
+seed: 1
+seed_data: 1
+tensorboard_functions: []
+test_names: data/new_names
+train_names: data/old_no_newL_train
+train_predictions_name:
+train_sampler:
+trainer: revised
+val_names: data/old_no_newL_val
+val_per_batch: true
+val_predictions_name:

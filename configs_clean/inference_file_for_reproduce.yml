@@ -1,0 +1,13 @@
+run_dirs:
+  - flexible_self_docking # the resulting coordinates will be saved here as tensors in a .pt file (but also as .sdf files if you specify an "output_directory" below)
+inference_path: # 'data/your_input_path' # this should be your input file path as described in the main readme
+
+test_names: timesplit_test
+output_directory:  # the predicted ligands will be saved as .sdf file here
+run_corrections: True
+use_rdkit_coords: True # generates the coordinates of the ligand with rdkit instead of using the provided conformer. If you already have a 3D structure that you want to use as initial conformer, then leave this as False
+save_trajectories: False
+
+num_confs: 1 # usually this should be 1
+
+
