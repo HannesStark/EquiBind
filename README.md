@@ -11,7 +11,7 @@ achieves significant speed-ups and better quality
 compared to traditional and recent baselines.
  If you have questions, don't hesitate to open an issue or ask me
 via [hannes.staerk@tum.de](hannes.staerk@tum.de)
-or [social media](https://hannes-stark.com/). I am happy to hear from you!
+or [social media](https://hannes-stark.com/) or Octavian Ganea via [oct@mit.edu](oct@mit.edu). We are happy to hear from you!
 
 ![](.fig_intro.jpg)
 
