@@ -3,10 +3,8 @@ import glob
 import os
 
 import networkx as nx
-import numpy as np
 from biopandas.pdb import PandasPdb
-from icecream import ic
-from rdkit import Chem
+
 from scipy import spatial
 from tqdm import tqdm
 import numpy as np

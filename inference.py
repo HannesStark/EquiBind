@@ -9,7 +9,6 @@ import os
 
 from dgl import load_graphs
 
-from icecream import install
 from rdkit import Chem
 from rdkit.Chem import RemoveHs
 from rdkit.Geometry import Point3D
@@ -22,7 +21,6 @@ from commons.process_mols import read_molecule, get_receptor, get_lig_graph_revi
 
 from train import load_model
 
-install()  # this lets you use ic() anywhere for debugging purposes
 
 from datasets.pdbbind import PDBBind
 

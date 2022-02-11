@@ -7,13 +7,11 @@ import traceback
 from collections import defaultdict
 from datetime import datetime
 
-from icecream import install
 
 from commons.logger import Logger
 from datasets.samplers import HardSampler
 from trainer.binding_trainer import BindingTrainer
 
-install()  # this lets you use ic() anywhere for debugging purposes
 
 from datasets.pdbbind import PDBBind
 
