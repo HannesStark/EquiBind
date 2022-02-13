@@ -3,8 +3,6 @@ import sys
 
 from copy import copy, deepcopy
 
-
-
 import os
 
 from dgl import load_graphs
@@ -21,7 +19,6 @@ from commons.process_mols import read_molecule, get_receptor, get_lig_graph_revi
 
 from train import load_model
 
-
 from datasets.pdbbind import PDBBind
 
 from commons.utils import seed_all, read_strings_from_txt
@@ -37,7 +34,8 @@ from torch.optim.lr_scheduler import *  # do not remove
 
 from torch.utils.data import DataLoader
 
-from trainer.metrics import Rsquared, MeanPredictorLoss, MAE, PearsonR, RMSD, RMSDfraction, CentroidDist, CentroidDistFraction, RMSDmedian, CentroidDistMedian
+from trainer.metrics import Rsquared, MeanPredictorLoss, MAE, PearsonR, RMSD, RMSDfraction, CentroidDist, \
+    CentroidDistFraction, RMSDmedian, CentroidDistMedian
 
 # turn on for debugging C code like Segmentation Faults
 import faulthandler
@@ -50,7 +48,8 @@ def parse_arguments():
     p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs_clean/inference.yml')
     p.add_argument('--checkpoint', type=str, help='path to .pt file in a checkpoint directory')
     p.add_argument('--output_directory', type=str, default=None, help='path where to put the predicted results')
-    p.add_argument('--run_corrections', type=bool, default=False, help='whether or not to run the fast point cloud ligand fitting')
+    p.add_argument('--run_corrections', type=bool, default=False,
+                   help='whether or not to run the fast point cloud ligand fitting')
     p.add_argument('--run_dirs', type=list, default=[], help='path directory with saved runs')
     p.add_argument('--fine_tune_dirs', type=list, default=[], help='path directory with saved finetuning runs')
     p.add_argument('--inference_path', type=str, help='path to some pdb files for which you want to run inference')
@@ -110,7 +109,8 @@ def parse_arguments():
     p.add_argument('--eval_on_test', type=bool, default=True, help='runs evaluation on test set if true')
     p.add_argument('--check_se3_invariance', type=bool, default=False, help='check it instead of generating files')
     p.add_argument('--num_confs', type=int, default=1, help='num_confs if using rdkit conformers')
-    p.add_argument('--use_rdkit_coords', type=bool, default=None, help='override the rkdit usage behavior of the used model')
+    p.add_argument('--use_rdkit_coords', type=bool, default=None,
+                   help='override the rkdit usage behavior of the used model')
 
     return p.parse_args()
 
@@ -121,7 +121,8 @@ def inference(args, tune_args=None):
     seed_all(args.seed)
     device = torch.device("cuda:0" if torch.cuda.is_available() and args.device == 'cuda' else "cpu")
 
-    use_rdkit_coords = args.dataset_params['use_rdkit_coords'] if 'use_rdkit_coords' in args.dataset_params.keys() else False
+    use_rdkit_coords = args.dataset_params[
+        'use_rdkit_coords'] if 'use_rdkit_coords' in args.dataset_params.keys() else False
     args.dataset_params['multiple_rdkit_conformers'] = args.num_confs > 1
     args.dataset_params['num_confs'] = args.num_confs
     data = PDBBind(device=device, complex_names_path=args.test_names, **args.dataset_params)
@@ -135,8 +136,7 @@ def inference(args, tune_args=None):
 
     checkpoint = torch.load(args.checkpoint, map_location=device)
 
-
-    model.load_state_dict({k:v for k,v in checkpoint['model_state_dict'].items() if 'cross_coords' not in k})
+    model.load_state_dict({k: v for k, v in checkpoint['model_state_dict'].items() if 'cross_coords' not in k})
     model.load_state_dict(checkpoint['model_state_dict'])
     model.to(device)
     model.eval()
@@ -151,9 +151,15 @@ def inference(args, tune_args=None):
         data.conformer_id = conformer_id
         for i, batch in tqdm(enumerate(loader)):
             with torch.no_grad():
-                lig_graphs, rec_graphs, ligs_coords, recs_coords, all_rec_coords, pockets_coords_lig,geometry_graph, names, idx = tuple(batch)
-                #if names[0] not in ['2fxs', '2iwx', '2vw5', '2wer', '2yge', ]: continue
-                ligs_coords_pred, ligs_keypts, recs_keypts, rotations, translations, geom_reg_loss = model(lig_graphs,rec_graphs , complex_names=names,epoch=0, geometry_graph=geometry_graph.to(device) if geometry_graph != None else None)
+                lig_graphs, rec_graphs, ligs_coords, recs_coords, all_rec_coords, pockets_coords_lig, geometry_graph, names, idx = tuple(
+                    batch)
+                # if names[0] not in ['2fxs', '2iwx', '2vw5', '2wer', '2yge', ]: continue
+                ligs_coords_pred, ligs_keypts, recs_keypts, rotations, translations, geom_reg_loss = model(lig_graphs,
+                                                                                                           rec_graphs,
+                                                                                                           complex_names=names,
+                                                                                                           epoch=0,
+                                                                                                           geometry_graph=geometry_graph.to(
+                                                                                                               device) if geometry_graph != None else None)
                 for lig_coords_pred, lig_coords, lig_keypts, rec_keypts, rotation, translation, rec_pocket_coords in zip(
                         ligs_coords_pred, ligs_coords, ligs_keypts, recs_keypts, rotations, translations,
                         pockets_coords_lig):
@@ -162,48 +168,20 @@ def inference(args, tune_args=None):
                     all_ligs_keypts.append(((rotation @ (lig_keypts).T).T + translation).detach().cpu())
                     all_recs_keypts.append(rec_keypts.detach().cpu())
                     all_pocket_coords.append(rec_pocket_coords.detach().cpu())
-                if translations ==[]:
+                if translations == []:
                     for lig_coords_pred, lig_coords in zip(ligs_coords_pred, ligs_coords):
                         all_ligs_coords_pred.append(lig_coords_pred.detach().cpu())
                         all_ligs_coords.append(lig_coords.detach().cpu())
                 all_names.extend(names)
-        if tune_args !=None:
-            tune_dp = tune_args.dataset_params
-            tune_checkpoint = torch.load(tune_args.checkpoint, map_location=device)
-            rec_subgraphs = []
-            for name in all_names:
-                rec_path = os.path.join('data/timesplit_prepared_for_gnina', name, f'rec.pdb')
-                lig = read_molecule(os.path.join('data/timesplit_prepared_for_gnina', name, f'{name}_ligand.sdf'), sanitize=True)
-                if lig == None:  # read mol2 file if sdf file cannot be sanitized
-                    lig = read_molecule(os.path.join('data/timesplit_prepared_for_gnina', name, f'{name}_ligand.mol2'), sanitize=True)
-                lig_graph = get_lig_graph_revised(lig, name, max_neighbors=tune_dp['lig_max_neighbors'], use_rdkit_coords=tune_dp[
-                    'use_rdkit_coords'] if 'use_rdkit_coords' in tune_dp.keys() else False, radius=tune_dp['lig_graph_radius'])
-                rec, rec_coords, c_alpha_coords, n_coords, c_coords = get_receptor_from_cleaned(rec_path)
 
-                rec_subgraph = get_receptor_atom_subgraph(rec, rec_coords, lig, max_neighbor=tune_dp['subgraph_max_neigbor'],
-                                                      subgraph_radius=tune_dp['subgraph_radius'],
-                                                      graph_cutoff=tune_dp['subgraph_cutoff'],
-                                                      lig_coords=all_ligs_coords_pred[0].cpu())
-                rec_subgraphs.append(rec_subgraph)
-
-            tune_model = load_model(tune_args, data_sample=(data[0][0], rec_subgraph), device=device)
-            tune_model.load_state_dict(tune_checkpoint['model_state_dict'])
-            tune_model.to(device)
-            tune_model.eval()
-            all_ligs_coords_pred = []
-            for i, name in enumerate(all_names):
-                ligs_coords_pred, ligs_keypts, recs_keypts, rotations, translations = tune_model(data[i][0].to(device),
-                                                                                             rec_subgraph.to(device),
-                                                                                             complex_names=[name], epoch=0)
-                all_ligs_coords_pred.append(ligs_coords_pred)
-
-        path = os.path.join(os.path.dirname(args.checkpoint), f'predictions_Tune{tune_args!=None}_RDKit{use_rdkit_coords}_confID{conformer_id}.pt')
+        path = os.path.join(os.path.dirname(args.checkpoint),
+                            f'predictions_Tune{tune_args != None}_RDKit{use_rdkit_coords}_confID{conformer_id}.pt')
         print(f'Saving predictions to {path}')
         results = {'predictions': all_ligs_coords_pred, 'targets': all_ligs_coords, 'lig_keypts': all_ligs_keypts,
                    'rec_keypts': all_recs_keypts, 'pocket_coords': all_pocket_coords, 'names': all_names}
         torch.save(results, path)
-        rmsds_equibind = []
-        centroid_distances_equibind = []
+        rmsds = []
+        centroid_distsH = []
         for i, (prediction, target, lig_keypts, rec_keypts, pocket_coords, name) in tqdm(enumerate(
                 zip(results['predictions'], results['targets'], results['lig_keypts'], results['rec_keypts'],
                     results['pocket_coords'], results['names']))):
@@ -212,21 +190,21 @@ def inference(args, tune_args=None):
             rmsd = np.sqrt(np.sum((coords_pred - coords_native) ** 2, axis=1).mean())
 
             centroid_distance = np.linalg.norm(coords_native.mean(axis=0) - coords_pred.mean(axis=0))
-            centroid_distances_equibind.append(centroid_distance)
-            rmsds_equibind.append(rmsd)
-        rmsds_equibind = np.array(rmsds_equibind)
-        centroid_distances_equibind = np.array(centroid_distances_equibind)
+            centroid_distsH.append(centroid_distance)
+            rmsds.append(rmsd)
+        rmsds = np.array(rmsds)
+        centroid_distsH = np.array(centroid_distsH)
 
         print('EquiBind-U with hydrogens inclduded in the loss')
-        print('mean rmsd: ', rmsds_equibind.mean().__round__(2), ' pm ', rmsds_equibind.std().__round__(2))
-        print('rmsd precentiles: ', np.percentile(rmsds_equibind, [25, 50, 75]).round(2))
-        print(f'rmsds below 2: {(100 * (rmsds_equibind < 2).sum() / len(rmsds_equibind)).__round__(2)}%')
-        print(f'rmsds below 5: {(100 * (rmsds_equibind < 5).sum() / len(rmsds_equibind)).__round__(2)}%')
-        print('mean centroid: ', centroid_distances_equibind.mean().__round__(2), ' pm ',
-              centroid_distances_equibind.std().__round__(2))
-        print('centroid precentiles: ', np.percentile(centroid_distances_equibind, [25, 50, 75]).round(2))
-        print(f'centroid_distances below 2: {(100 * (centroid_distances_equibind < 2).sum() / len(centroid_distances_equibind)).__round__(2)}%')
-        print(f'centroid_distances below 5: {(100 * (centroid_distances_equibind < 5).sum() / len(centroid_distances_equibind)).__round__(2)}%')
+        print('mean rmsd: ', rmsds.mean().__round__(2), ' pm ', rmsds.std().__round__(2))
+        print('rmsd precentiles: ', np.percentile(rmsds, [25, 50, 75]).round(2))
+        print(f'rmsds below 2: {(100 * (rmsds < 2).sum() / len(rmsds)).__round__(2)}%')
+        print(f'rmsds below 5: {(100 * (rmsds < 5).sum() / len(rmsds)).__round__(2)}%')
+        print('mean centroid: ', centroid_distsH.mean().__round__(2), ' pm ',
+              centroid_distsH.std().__round__(2))
+        print('centroid precentiles: ', np.percentile(centroid_distsH, [25, 50, 75]).round(2))
+        print(f'centroid_distances below 2: {(100 * (centroid_distsH < 2).sum() / len(centroid_distsH)).__round__(2)}%')
+        print(f'centroid_distances below 5: {(100 * (centroid_distsH < 5).sum() / len(centroid_distsH)).__round__(2)}%')
 
         if args.run_corrections:
             rdkit_graphs, _ = load_graphs(
@@ -293,53 +271,41 @@ def inference(args, tune_args=None):
                 centroid_distances_optimized.append(centroid_distance_optimized)
             kabsch_rmsds = np.array(kabsch_rmsds)
             rmsdvals = np.array(rmsds)
-            centroid_distances = np.array(centroid_distances)
+            centroid_distsU = np.array(centroid_distances)
             kabsch_rmsds_optimized = np.array(kabsch_rmsds_optimized)
-            rmsdvals_optimized = np.array(rmsds_optimized)
-            centroid_distances_optimized = np.array(centroid_distances_optimized)
+            rmsd_optimized = np.array(rmsds_optimized)
+            centroid_dists = np.array(centroid_distances_optimized)
             print('EquiBind-U')
             print('mean rmsdval: ', rmsdvals.mean().__round__(2), ' pm ', rmsdvals.std().__round__(2))
             print('rmsd precentiles: ', np.percentile(rmsdvals, [25, 50, 75]).round(2))
             print(f'rmsdvals below 2: {(100 * (rmsdvals < 2).sum() / len(rmsdvals)).__round__(2)}%')
             print(f'rmsdvals below 5: {(100 * (rmsdvals < 5).sum() / len(rmsdvals)).__round__(2)}%')
-            print('mean centroid: ', centroid_distances.mean().__round__(2), ' pm ',
-                  centroid_distances.std().__round__(2))
-            print('centroid precentiles: ', np.percentile(centroid_distances, [25, 50, 75]).round(2))
-            print(
-                f'centroid_distances below 2: {(100 * (centroid_distances < 2).sum() / len(centroid_distances)).__round__(2)}%')
-            print(
-                f'centroid_distances below 5: {(100 * (centroid_distances < 5).sum() / len(centroid_distances)).__round__(2)}%')
+            print('mean centroid: ', centroid_distsU.mean().__round__(2), ' pm ', centroid_distsU.std().__round__(2))
+            print('centroid precentiles: ', np.percentile(centroid_distsU, [25, 50, 75]).round(2))
+            print(f'centroid dist below 2: {(100 * (centroid_distsU < 2).sum() / len(centroid_distsU)).__round__(2)}%')
+            print(f'centroid dist below 5: {(100 * (centroid_distsU < 5).sum() / len(centroid_distsU)).__round__(2)}%')
             print(f'mean kabsch RMSD: ', kabsch_rmsds.mean().__round__(2), ' pm ', kabsch_rmsds.std().__round__(2))
             print('kabsch RMSD percentiles: ', np.percentile(kabsch_rmsds, [25, 50, 75]).round(2))
 
             print('EquiBind')
-            print('mean rmsdval: ', rmsdvals_optimized.mean().__round__(2), ' pm ',
-                  rmsdvals_optimized.std().__round__(2))
-            print('rmsd precentiles: ', np.percentile(rmsdvals_optimized, [25, 50, 75]).round(2))
-            print(f'rmsdvals below 2: {(100 * (rmsdvals_optimized < 2).sum() / len(rmsdvals_optimized)).__round__(2)}%')
-            print(f'rmsdvals below 5: {(100 * (rmsdvals_optimized < 5).sum() / len(rmsdvals_optimized)).__round__(2)}%')
-            print('mean centroid: ', centroid_distances_optimized.mean().__round__(2), ' pm ',
-                  centroid_distances_optimized.std().__round__(2))
-            print('centroid precentiles: ', np.percentile(centroid_distances_optimized, [25, 50, 75]).round(2))
-            print(
-                f'centroid_distances below 2: {(100 * (centroid_distances_optimized < 2).sum() / len(centroid_distances_optimized)).__round__(2)}%')
-            print(
-                f'centroid_distances below 5: {(100 * (centroid_distances_optimized < 5).sum() / len(centroid_distances_optimized)).__round__(2)}%')
+            print('mean rmsdval: ', rmsd_optimized.mean().__round__(2), ' pm ', rmsd_optimized.std().__round__(2))
+            print('rmsd precentiles: ', np.percentile(rmsd_optimized, [25, 50, 75]).round(2))
+            print(f'rmsdvals below 2: {(100 * (rmsd_optimized < 2).sum() / len(rmsd_optimized)).__round__(2)}%')
+            print(f'rmsdvals below 5: {(100 * (rmsd_optimized < 5).sum() / len(rmsd_optimized)).__round__(2)}%')
+            print('mean centroid: ', centroid_dists.mean().__round__(2), ' pm ', centroid_dists.std().__round__(2))
+            print('centroid precentiles: ', np.percentile(centroid_dists, [25, 50, 75]).round(2))
+            print(f'centroid dist below 2: {(100 * (centroid_dists < 2).sum() / len(centroid_dists)).__round__(2)}%')
+            print(f'centroid dist below 5: {(100 * (centroid_dists < 5).sum() / len(centroid_dists)).__round__(2)}%')
             print(f'mean kabsch RMSD: ', kabsch_rmsds_optimized.mean().__round__(2), ' pm ',
                   kabsch_rmsds_optimized.std().__round__(2))
             print('kabsch RMSD percentiles: ', np.percentile(kabsch_rmsds_optimized, [25, 50, 75]).round(2))
 
-def inference_from_files(args, tune_args=None):
+
+def inference_from_files(args):
     seed_all(args.seed)
     device = torch.device("cuda:0" if torch.cuda.is_available() and args.device == 'cuda' else "cpu")
     checkpoint = torch.load(args.checkpoint, map_location=device)
-    if tune_args: tune_checkpoint = torch.load(tune_args.checkpoint, map_location=device)
     model = None
-    tune_model = None
-    save_path = os.path.join(os.path.dirname(args.checkpoint), 'predictions')
-    if not os.path.exists(save_path):
-        os.mkdir(save_path)
-    all_ligs_coords_pred = []
     all_ligs_coords_corrected = []
     all_intersection_losses = []
     all_intersection_losses_untuned = []
@@ -349,18 +315,24 @@ def inference_from_files(args, tune_args=None):
     all_recs_keypts = []
     all_names = []
     dp = args.dataset_params
-    use_rdkit_coords = args.use_rdkit_coords if args.use_rdkit_coords != None else args.dataset_params['use_rdkit_coords']
-    if tune_args:  tune_dp = tune_args.dataset_params
+    use_rdkit_coords = args.use_rdkit_coords if args.use_rdkit_coords != None else args.dataset_params[
+        'use_rdkit_coords']
     names = os.listdir(args.inference_path) if args.inference_path != None else tqdm(read_strings_from_txt('data/timesplit_test'))
-    for name in tqdm(names):
+    for name in tqdm(names[:4]):
         rec_path = os.path.join(args.inference_path, name, f'rec.pdb')
         lig = read_molecule(os.path.join(args.inference_path, name, f'{name}_ligand.sdf'), sanitize=True)
         if lig == None:  # read mol2 file if sdf file cannot be sanitized
             lig = read_molecule(os.path.join(args.inference_path, name, f'{name}_ligand.mol2'), sanitize=True)
 
-        rec, rec_coords, c_alpha_coords, n_coords, c_coords = get_receptor(rec_path,lig, cutoff=dp['chain_radius'])
-        rec_graph = get_rec_graph(rec, rec_coords, c_alpha_coords, n_coords, c_coords, use_rec_atoms=dp['use_rec_atoms'], rec_radius=dp['rec_graph_radius'],surface_max_neighbors=dp['surface_max_neighbors'],surface_graph_cutoff=dp['surface_graph_cutoff'],surface_mesh_cutoff=dp['surface_mesh_cutoff'],c_alpha_max_neighbors=dp['c_alpha_max_neighbors'])
-        lig_graph = get_lig_graph_revised(lig, name,max_neighbors = dp['lig_max_neighbors'], use_rdkit_coords = use_rdkit_coords, radius = dp['lig_graph_radius'])
+        rec, rec_coords, c_alpha_coords, n_coords, c_coords = get_receptor(rec_path, lig, cutoff=dp['chain_radius'])
+        rec_graph = get_rec_graph(rec, rec_coords, c_alpha_coords, n_coords, c_coords,
+                                  use_rec_atoms=dp['use_rec_atoms'], rec_radius=dp['rec_graph_radius'],
+                                  surface_max_neighbors=dp['surface_max_neighbors'],
+                                  surface_graph_cutoff=dp['surface_graph_cutoff'],
+                                  surface_mesh_cutoff=dp['surface_mesh_cutoff'],
+                                  c_alpha_max_neighbors=dp['c_alpha_max_neighbors'])
+        lig_graph = get_lig_graph_revised(lig, name, max_neighbors=dp['lig_max_neighbors'],
+                                          use_rdkit_coords=use_rdkit_coords, radius=dp['lig_graph_radius'])
         if dp['geometry_regularization']:
             geometry_graph = get_geometry_graph(lig)
         elif dp['geometry_regularization_ring']:
@@ -380,41 +352,28 @@ def inference_from_files(args, tune_args=None):
         lig_graph.ndata['new_x'] = input_coords
 
         if model == None:
-            model = load_model(args, data_sample=(lig_graph,rec_graph), device=device)
+            model = load_model(args, data_sample=(lig_graph, rec_graph), device=device)
             model.load_state_dict(checkpoint['model_state_dict'])
             model.to(device)
             model.eval()
 
         with torch.no_grad():
-            ligs_coords_pred_untuned, ligs_keypts, recs_keypts, rotations, translations, geom_reg_loss = model(lig_graph.to(device), rec_graph.to(device), geometry_graph.to(device),complex_names=[name], epoch=0)
+            ligs_coords_pred_untuned, ligs_keypts, recs_keypts, rotations, translations, geom_reg_loss = model(
+                lig_graph.to(device), rec_graph.to(device), geometry_graph.to(device), complex_names=[name], epoch=0)
 
-            for lig_coords_pred_untuned, lig_coords, lig_keypts, rec_keypts, rotation, translation in zip(ligs_coords_pred_untuned, [start_lig_coords], ligs_keypts, recs_keypts, rotations,
+            for lig_coords_pred_untuned, lig_coords, lig_keypts, rec_keypts, rotation, translation in zip(
+                    ligs_coords_pred_untuned, [start_lig_coords], ligs_keypts, recs_keypts, rotations,
                     translations, ):
-                all_intersection_losses_untuned.append(compute_revised_intersection_loss(lig_coords_pred_untuned.detach().cpu(), rec_graph.ndata['x'],
+                all_intersection_losses_untuned.append(
+                    compute_revised_intersection_loss(lig_coords_pred_untuned.detach().cpu(), rec_graph.ndata['x'],
                                                       alpha=0.2, beta=8, aggression=0))
                 all_ligs_coords_pred_untuned.append(lig_coords_pred_untuned.detach().cpu())
                 all_ligs_coords.append(lig_coords.detach().cpu())
                 all_ligs_keypts.append(((rotation @ (lig_keypts).T).T + translation).detach().cpu())
                 all_recs_keypts.append(rec_keypts.detach().cpu())
 
-            if tune_args:
-                rec_subgraph = get_receptor_atom_subgraph(rec, rec_coords, lig,  max_neighbor=tune_dp['subgraph_max_neigbor'], subgraph_radius=tune_dp['subgraph_radius'], graph_cutoff=tune_dp['subgraph_cutoff'], lig_coords=ligs_coords_pred_untuned[0].cpu())
-                if tune_model == None:
-                    tune_model = load_model(tune_args, data_sample=(lig_graph, rec_subgraph), device=device)
-                    tune_model.load_state_dict(tune_checkpoint['model_state_dict'])
-                    tune_model.to(device)
-                    tune_model.eval()
-                ligs_coords_pred, ligs_keypts, recs_keypts, rotations, translations = tune_model(lig_graph.to(device),
-                                                                                            rec_subgraph.to(device),
-                                                                                            complex_names=[name], epoch=0)
-                for lig_coords_pred in zip(ligs_coords_pred,ligs_coords_pred_untuned, [start_lig_coords],ligs_keypts, recs_keypts, rotations, translations,):
-                    all_intersection_losses.append(
-                        compute_revised_intersection_loss(lig_coords_pred.detach().cpu(), rec_subgraph.ndata['x'], alpha=0.2, beta=8,
-                                                          aggression=0))
-                    all_ligs_coords_pred.append(lig_coords_pred.detach().cpu())
-
             if args.run_corrections:
-                prediction = ligs_coords_pred[0] if tune_args else ligs_coords_pred_untuned[0].detach().cpu()
+                prediction = ligs_coords_pred_untuned[0].detach().cpu()
                 lig_input = deepcopy(lig)
                 conf = lig_input.GetConformer()
                 for i in range(lig_input.GetNumAtoms()):
@@ -426,7 +385,6 @@ def inference_from_files(args, tune_args=None):
                 for i in range(lig_equibind.GetNumAtoms()):
                     x, y, z = prediction.numpy()[i]
                     conf.SetAtomPosition(i, Point3D(float(x), float(y), float(z)))
-
 
                 coords_pred = lig_equibind.GetConformer().GetPositions()
 
@@ -452,20 +410,18 @@ def inference_from_files(args, tune_args=None):
                         x, y, z = coords_pred_optimized[i]
                         conf.SetAtomPosition(i, Point3D(float(x), float(y), float(z)))
                     block_optimized = Chem.MolToMolBlock(optimized_mol)
+                    print(f'Writing prediction to {args.output_directory}/{name}/lig_equibind_corrected.sdf')
                     with open(f'{args.output_directory}/{name}/lig_equibind_corrected.sdf', "w") as newfile:
                         newfile.write(block_optimized)
             all_names.append(name)
-    if tune_args:
-        if not os.path.exists(os.path.join(os.path.dirname(args.checkpoint), os.path.dirname(tune_args.checkpoint).split('/')[-1])):
-            os.mkdir(os.path.join(os.path.dirname(args.checkpoint), os.path.dirname(tune_args.checkpoint).split('/')[-1]))
-        path = os.path.join(os.path.dirname(args.checkpoint), os.path.dirname(tune_args.checkpoint).split('/')[-1], f'predictions_RDKit{use_rdkit_coords}.pt')
-    else:
-        path = os.path.join(os.path.dirname(args.checkpoint), f'predictions_RDKit{use_rdkit_coords}.pt')
-    print(f'Saving predictions to {path}')
-    results = {'corrected_predictions': all_ligs_coords_corrected, 'tuned_predictions': all_ligs_coords_pred, 'initial_predictions':all_ligs_coords_pred_untuned, 'targets': all_ligs_coords, 'lig_keypts': all_ligs_keypts,
-               'rec_keypts': all_recs_keypts, 'names': all_names, 'intersection_losses_untuned': all_intersection_losses_untuned, 'intersection_losses': all_intersection_losses}
-    torch.save(results, path)
 
+    path = os.path.join(os.path.dirname(args.checkpoint), f'predictions_RDKit{use_rdkit_coords}.pt')
+    print(f'Saving predictions to {path}')
+    results = {'corrected_predictions': all_ligs_coords_corrected, 'initial_predictions': all_ligs_coords_pred_untuned,
+               'targets': all_ligs_coords, 'lig_keypts': all_ligs_keypts, 'rec_keypts': all_recs_keypts,
+               'names': all_names, 'intersection_losses_untuned': all_intersection_losses_untuned,
+               'intersection_losses': all_intersection_losses}
+    torch.save(results, path)
 
 
 if __name__ == '__main__':
@@ -484,57 +440,22 @@ if __name__ == '__main__':
     else:
         config_dict = {}
 
-    if args.fine_tune_dirs == [] or args.fine_tune_dirs == None:
-        for run_dir in args.run_dirs:
-            args.checkpoint = f'runs/{run_dir}/best_checkpoint.pt'
-            config_dict['checkpoint'] = f'runs/{run_dir}/best_checkpoint.pt'
-            # overwrite args with args from checkpoint except for the args that were contained in the config file
-            arg_dict = args.__dict__
-            with open(os.path.join(os.path.dirname(args.checkpoint), 'train_arguments.yaml'), 'r') as arg_file:
-                checkpoint_dict = yaml.load(arg_file, Loader=yaml.FullLoader)
-            for key, value in checkpoint_dict.items():
-                if key not in config_dict.keys():
-                    if isinstance(value, list):
-                        for v in value:
-                            arg_dict[key].append(v)
-                    else:
-                        arg_dict[key] = value
-            args.model_parameters['noise_initial'] = 0
-            if args.inference_path == None:
-                inference(args)
-            else:
-                inference_from_files(args)
-    else:
-        for run_dir in args.run_dirs:
-            for tune_dir in args.fine_tune_dirs:
-                tune_args = deepcopy(args)
-                tune_args.checkpoint = f'runs/{tune_dir}/best_checkpoint.pt'
-                args.checkpoint = f'runs/{run_dir}/best_checkpoint.pt'
-                config_dict['checkpoint'] = f'runs/{run_dir}/best_checkpoint.pt'
-                # overwrite args with args from checkpoint except for the args that were contained in the config file
-                arg_dict = args.__dict__
-                with open(os.path.join(os.path.dirname(args.checkpoint), 'train_arguments.yaml'), 'r') as arg_file:
-                    checkpoint_dict = yaml.load(arg_file, Loader=yaml.FullLoader)
-                for key, value in checkpoint_dict.items():
-                    if key not in config_dict.keys():
-                        if isinstance(value, list):
-                            for v in value:
-                                arg_dict[key].append(v)
-                        else:
-                            arg_dict[key] = value
-                tune_arg_dict = tune_args.__dict__
-                with open(os.path.join(os.path.dirname(tune_args.checkpoint), 'train_arguments.yaml'), 'r') as arg_file:
-                    checkpoint_dict = yaml.load(arg_file, Loader=yaml.FullLoader)
-                for key, value in checkpoint_dict.items():
-                    if key not in config_dict.keys():
-                        if isinstance(value, list):
-                            for v in value:
-                                tune_arg_dict[key].append(v)
-                        else:
-                            tune_arg_dict[key] = value
-                tune_args.model_parameters['noise_initial'] = 0
-                args.model_parameters['noise_initial'] = 0
-                if args.inference_path == None:
-                    inference(args, tune_args)
+    for run_dir in args.run_dirs:
+        args.checkpoint = f'runs/{run_dir}/best_checkpoint.pt'
+        config_dict['checkpoint'] = f'runs/{run_dir}/best_checkpoint.pt'
+        # overwrite args with args from checkpoint except for the args that were contained in the config file
+        arg_dict = args.__dict__
+        with open(os.path.join(os.path.dirname(args.checkpoint), 'train_arguments.yaml'), 'r') as arg_file:
+            checkpoint_dict = yaml.load(arg_file, Loader=yaml.FullLoader)
+        for key, value in checkpoint_dict.items():
+            if key not in config_dict.keys():
+                if isinstance(value, list):
+                    for v in value:
+                        arg_dict[key].append(v)
                 else:
-                    inference_from_files(args, tune_args)
+                    arg_dict[key] = value
+        args.model_parameters['noise_initial'] = 0
+        if args.inference_path == None:
+            inference(args)
+        else:
+            inference_from_files(args)
