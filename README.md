@@ -52,15 +52,19 @@ current repo
 
     git clone https://github.com/HannesStark/EquiBind
 
-Create a new environment with all required packages using `environment.yml` (this can take a while). While in the project directory run:
+Create a new environment with all required packages using `environment.yml`. If you have a CUDA GPU run:
 
-    conda env create
+    conda env create -f environment.yml
+
+If you instead only have a CPU run:
+
+    conda env create -f environment_cpuonly.yml
 
 Activate the environment
 
     conda activate equibind
 
-Here are the requirements themselves if you want to install them manually instead of using the `environment.yml`:
+Here are the requirements themselves for the case with a CUDA GPU if you want to install them manually instead of using the `environment.yml`:
 ````
 python=3.7
 pytorch 1.10
