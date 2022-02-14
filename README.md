@@ -31,8 +31,8 @@ If you want to train one of our models with the data then:
 
 ## Step 1: What you need as input
 
-Ligand files of the formats ``.mol2`` or ``.sdf`` or ``.pdbqt`` or ``.pdb``. \
-Receptor files of the format ``.pdb`` \
+Ligand files of the formats ``.mol2`` or ``.sdf`` or ``.pdbqt`` or ``.pdb`` whose names contain the string `ligand`. \
+Receptor files of the format ``.pdb`` whose names contain the string `protein`.\
 For each complex you want to predict you need a directory containing the ligand and receptor file. Like this: 
 ```
 my_data_folder
@@ -41,7 +41,7 @@ my_data_folder
     │   name1_ligand.sdf
 └───name2
     │   name2_protein.pdb
-    │   name2_ligand.sdf
+    │   name2_ligand.mol2
 ...
 ```
 

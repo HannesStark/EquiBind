@@ -318,11 +318,23 @@ def inference_from_files(args):
     use_rdkit_coords = args.use_rdkit_coords if args.use_rdkit_coords != None else args.dataset_params[
         'use_rdkit_coords']
     names = os.listdir(args.inference_path) if args.inference_path != None else tqdm(read_strings_from_txt('data/timesplit_test'))
-    for name in tqdm(names[:4]):
-        rec_path = os.path.join(args.inference_path, name, f'rec.pdb')
-        lig = read_molecule(os.path.join(args.inference_path, name, f'{name}_ligand.sdf'), sanitize=True)
-        if lig == None:  # read mol2 file if sdf file cannot be sanitized
-            lig = read_molecule(os.path.join(args.inference_path, name, f'{name}_ligand.mol2'), sanitize=True)
+    for idx, name in enumerate(names):
+        print(f'\nProcessing {name}: complex {idx + 1} of {len(names)}')
+        file_names = os.listdir(os.path.join(args.inference_path, name))
+        rec_name = [i for i in file_names if 'rec.pdb' in i or 'protein' in i][0]
+        lig_names = [i for i in file_names if 'ligand' in i]
+        rec_path = os.path.join(args.inference_path, name, rec_name)
+        for lig_name in lig_names:
+            if not os.path.exists(os.path.join(args.inference_path, name, lig_name)):
+                raise ValueError(f'Path does not exist: {os.path.join(args.inference_path, name, lig_name)}')
+            print(f'Trying to load {os.path.join(args.inference_path, name, lig_name)}')
+            lig = read_molecule(os.path.join(args.inference_path, name, lig_name), sanitize=True)
+            if lig != None:  # read mol2 file if sdf file cannot be sanitized
+                used_lig = os.path.join(args.inference_path, name, lig_name)
+                break
+        if lig_names == []: raise ValueError(f'No ligand files found. The ligand file has to contain \'ligand\'.')
+        if lig == None: raise ValueError(f'None of the ligand files could be read: {lig_names}')
+        print(f'Docking the receptor {os.path.join(args.inference_path, name, rec_name)}\nTo the ligand {used_lig}')
 
         rec, rec_coords, c_alpha_coords, n_coords, c_coords = get_receptor(rec_path, lig, cutoff=dp['chain_radius'])
         rec_graph = get_rec_graph(rec, rec_coords, c_alpha_coords, n_coords, c_coords,
