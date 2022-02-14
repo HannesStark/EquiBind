@@ -413,10 +413,8 @@ def inference_from_files(args):
                 all_ligs_coords_corrected.append(coords_pred_optimized)
 
                 if args.output_directory:
-                    if not os.path.exists(args.output_directory):
-                        os.mkdir(args.output_directory)
                     if not os.path.exists(f'{args.output_directory}/{name}'):
-                        os.mkdir(f'{args.output_directory}/{name}')
+                        os.makedirs(f'{args.output_directory}/{name}')
                     conf = optimized_mol.GetConformer()
                     for i in range(optimized_mol.GetNumAtoms()):
                         x, y, z = coords_pred_optimized[i]
