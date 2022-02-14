@@ -241,7 +241,7 @@ class PDBBind(Dataset):
         if self.bsp_proteins:
             rec_paths = [os.path.join(self.bsp_dir, name, f'Rec.pdb') for name in complex_names]
         else:
-            rec_paths = [os.path.join(self.pdbbind_dir, name, f'{name}_protein_obabel_reduce.pdb') for name in
+            rec_paths = [os.path.join(self.pdbbind_dir, name, f'{name}_protein_processed.pdb') for name in
                          complex_names]
 
         if not os.path.exists(self.processed_dir):
