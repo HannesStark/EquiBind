@@ -7,7 +7,6 @@ from typing import Dict, Callable
 import pyaml
 import torch
 import numpy as np
-from torch.utils.tensorboard.summary import hparams
 
 from datasets.samplers import HardSampler
 from models import *  # do not remove
@@ -208,12 +207,6 @@ class Trainer():
             metric_name = f'{key}/{data_split}'
             logs[metric_name] = metric
             self.writer.add_scalar(metric_name, metric, step)
-
-        if log_hparam:  # write hyperparameters to tensorboard
-            exp, ssi, sei = hparams(flatten_dict(self.hparams), flatten_dict(logs))
-            self.writer.file_writer.add_summary(exp)
-            self.writer.file_writer.add_summary(ssi)
-            self.writer.file_writer.add_summary(sei)
 
     def evaluation(self, data_loader: DataLoader, data_split: str = '', return_pred=False):
         self.model.eval()
