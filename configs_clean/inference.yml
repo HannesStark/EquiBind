@@ -1,6 +1,6 @@
 run_dirs:
   - flexible_self_docking # the resulting coordinates will be saved here as tensors in a .pt file (but also as .sdf files if you specify an "output_directory" below)
-inference_path: 'data/timesplit_prepared_for_gnina' # this should be your input file path as described in the main readme
+inference_path: 'data/timesplit_no_lig_overlap_val' # this should be your input file path as described in the main readme
 
 test_names: timesplit_test
 output_directory: 'data/results/output' # the predicted ligands will be saved as .sdf file here
