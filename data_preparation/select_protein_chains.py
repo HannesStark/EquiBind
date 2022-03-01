@@ -1,9 +1,11 @@
 # in this file we perform the removal of chains that have none of their atoms withing a 10 A radius of the ligand.
+# this additionally needs "conda install prody"
 
 import os
 import warnings
 
 import numpy as np
+import prody
 from Bio.PDB import PDBIO, PDBParser
 from Bio.PDB.PDBExceptions import PDBConstructionWarning
 from scipy import spatial
@@ -88,5 +90,10 @@ for name in tqdm(names):
         else:
             invalid_chain_ids.append(chain.get_id())
 
-    io.set_structure(structure)
-    io.save(os.path.join(data_dir,name,f'{name}_protein_processed.pdb'))
+#  Many thanks to Professor David Ryan Koes for spotting that the commented code only removes water and other chains while keeping the actual receptor chains.
+#  While directly modifying the .pdb file as text file is an option, we can again follow Prof. Koes's excellent advice and use the prody library as in the code below.
+#    io.set_structure(structure)
+#    io.save(os.path.join(data_dir,name,f'{name}_protein_processed2.pdb'))
+    prot = prody.parsePDB(rec_path)
+    sel = prot.select(' or '.join(map(lambda c: f'chain {c}', valid_chain_ids)))
+    prody.writePDB(os.path.join(data_dir,name,f'{name}_protein_processed2.pdb'),sel)
