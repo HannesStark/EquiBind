@@ -15,7 +15,8 @@ from tqdm import tqdm
 from commons.geometry_utils import rigid_transform_Kabsch_3D, get_torsions, get_dihedral_vonMises, apply_changes
 from commons.logger import Logger
 from commons.process_mols import read_molecule, get_receptor, get_lig_graph_revised, \
-    get_rec_graph, get_receptor_atom_subgraph, get_receptor_from_cleaned, get_geometry_graph, get_geometry_graph_ring
+    get_rec_graph, get_receptor_atom_subgraph, get_receptor_from_cleaned, get_geometry_graph, get_geometry_graph_ring, \
+    get_receptor_inference
 
 from train import load_model
 
@@ -336,7 +337,7 @@ def inference_from_files(args):
         if lig == None: raise ValueError(f'None of the ligand files could be read: {lig_names}')
         print(f'Docking the receptor {os.path.join(args.inference_path, name, rec_name)}\nTo the ligand {used_lig}')
 
-        rec, rec_coords, c_alpha_coords, n_coords, c_coords = get_receptor(rec_path, lig, cutoff=dp['chain_radius'])
+        rec, rec_coords, c_alpha_coords, n_coords, c_coords = get_receptor_inference(rec_path)
         rec_graph = get_rec_graph(rec, rec_coords, c_alpha_coords, n_coords, c_coords,
                                   use_rec_atoms=dp['use_rec_atoms'], rec_radius=dp['rec_graph_radius'],
                                   surface_max_neighbors=dp['surface_max_neighbors'],
