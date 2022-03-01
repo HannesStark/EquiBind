@@ -346,9 +346,9 @@ def inference_from_files(args):
                                   c_alpha_max_neighbors=dp['c_alpha_max_neighbors'])
         lig_graph = get_lig_graph_revised(lig, name, max_neighbors=dp['lig_max_neighbors'],
                                           use_rdkit_coords=use_rdkit_coords, radius=dp['lig_graph_radius'])
-        if dp['geometry_regularization']:
+        if 'geometry_regularization' in dp and dp['geometry_regularization']:
             geometry_graph = get_geometry_graph(lig)
-        elif dp['geometry_regularization_ring']:
+        elif 'geometry_regularization_ring' in dp and dp['geometry_regularization_ring']:
             geometry_graph = get_geometry_graph_ring(lig)
         else:
             geometry_graph = None
@@ -371,8 +371,9 @@ def inference_from_files(args):
             model.eval()
 
         with torch.no_grad():
+            geometry_graph = geometry_graph.to(device) if geometry_graph != None else None
             ligs_coords_pred_untuned, ligs_keypts, recs_keypts, rotations, translations, geom_reg_loss = model(
-                lig_graph.to(device), rec_graph.to(device), geometry_graph.to(device), complex_names=[name], epoch=0)
+                lig_graph.to(device), rec_graph.to(device), geometry_graph, complex_names=[name], epoch=0)
 
             for lig_coords_pred_untuned, lig_coords, lig_keypts, rec_keypts, rotation, translation in zip(
                     ligs_coords_pred_untuned, [start_lig_coords], ligs_keypts, recs_keypts, rotations,
