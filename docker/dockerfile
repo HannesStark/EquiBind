@@ -12,7 +12,7 @@ RUN gcc --version
 RUN nvcc --version
 
 # clone git repository
-RUN git clone https://github.com/labdao/lab-equibind.git
+RUN git clone https://github.com/HannesStark/EquiBind.git
 
 # install conda
 RUN wget -q -P . https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
