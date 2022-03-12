@@ -1,5 +1,6 @@
 
 # EquiBind: Geometric Deep Learning for Drug Binding Structure Prediction
+[![Docker](https://github.com/labdao/lab-equibind/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/labdao/lab-equibind/actions/workflows/docker-publish.yml)
 
 ### [Paper on arXiv](https://arxiv.org/abs/2202.05146)
 
