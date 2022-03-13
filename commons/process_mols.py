@@ -286,7 +286,6 @@ def get_receptor_from_cleaned(rec_path):
     n_coords = np.stack(n_coords, axis=0)  # [n_residues, 3]
     c_coords = np.stack(c_coords, axis=0)  # [n_residues, 3]
     return rec, coords, c_alpha_coords, n_coords, c_coords
-
 def get_receptor(rec_path, lig, cutoff):
     conf = lig.GetConformer()
     lig_coords = conf.GetPositions()
@@ -382,6 +381,84 @@ def get_receptor(rec_path, lig, cutoff):
     assert sum(valid_lengths) == len(c_alpha_coords)
     return rec, coords, c_alpha_coords, n_coords, c_coords
 
+def get_receptor_inference(rec_path):
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=PDBConstructionWarning)
+        structure = biopython_parser.get_structure('random_id', rec_path)
+        rec = structure[0]
+    coords = []
+    c_alpha_coords = []
+    n_coords = []
+    c_coords = []
+    valid_chain_ids = []
+    lengths = []
+    for i, chain in enumerate(rec):
+        chain_coords = []  # num_residues, num_atoms, 3
+        chain_c_alpha_coords = []
+        chain_n_coords = []
+        chain_c_coords = []
+        chain_is_water = False
+        count = 0
+        invalid_res_ids = []
+        for res_idx, residue in enumerate(chain):
+            if residue.get_resname() == 'HOH':
+                chain_is_water = True
+            residue_coords = []
+            c_alpha, n, c = None, None, None
+            for atom in residue:
+                if atom.name == 'CA':
+                    c_alpha = list(atom.get_vector())
+                if atom.name == 'N':
+                    n = list(atom.get_vector())
+                if atom.name == 'C':
+                    c = list(atom.get_vector())
+                residue_coords.append(list(atom.get_vector()))
+            # TODO: Also include the chain_coords.append(np.array(residue_coords)) for non amino acids such that they can be used when using the atom representation of the receptor
+            if c_alpha != None and n != None and c != None:  # only append residue if it is an amino acid and not some weired molecule that is part of the complex
+                chain_c_alpha_coords.append(c_alpha)
+                chain_n_coords.append(n)
+                chain_c_coords.append(c)
+                chain_coords.append(np.array(residue_coords))
+                count += 1
+            else:
+                invalid_res_ids.append(residue.get_id())
+        for res_id in invalid_res_ids:
+            chain.detach_child(res_id)
+        lengths.append(count)
+        coords.append(chain_coords)
+        c_alpha_coords.append(np.array(chain_c_alpha_coords))
+        n_coords.append(np.array(chain_n_coords))
+        c_coords.append(np.array(chain_c_coords))
+        if len(chain_coords) > 0 and not chain_is_water:
+            valid_chain_ids.append(chain.get_id())
+    valid_coords = []
+    valid_c_alpha_coords = []
+    valid_n_coords = []
+    valid_c_coords = []
+    valid_lengths = []
+    invalid_chain_ids = []
+    for i, chain in enumerate(rec):
+        if chain.get_id() in valid_chain_ids:
+            valid_coords.append(coords[i])
+            valid_c_alpha_coords.append(c_alpha_coords[i])
+            valid_n_coords.append(n_coords[i])
+            valid_c_coords.append(c_coords[i])
+            valid_lengths.append(lengths[i])
+        else:
+            invalid_chain_ids.append(chain.get_id())
+    coords = [item for sublist in valid_coords for item in sublist]  # list with n_residues arrays: [n_atoms, 3]
+
+    c_alpha_coords = np.concatenate(valid_c_alpha_coords, axis=0)  # [n_residues, 3]
+    n_coords = np.concatenate(valid_n_coords, axis=0)  # [n_residues, 3]
+    c_coords = np.concatenate(valid_c_coords, axis=0)  # [n_residues, 3]
+
+    for invalid_id in invalid_chain_ids:
+        rec.detach_child(invalid_id)
+
+    assert len(c_alpha_coords) == len(n_coords)
+    assert len(c_alpha_coords) == len(c_coords)
+    assert sum(valid_lengths) == len(c_alpha_coords)
+    return rec, coords, c_alpha_coords, n_coords, c_coords
 
 def get_rdkit_coords(mol):
     ps = AllChem.ETKDGv2()
