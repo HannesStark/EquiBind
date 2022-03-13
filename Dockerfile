@@ -11,6 +11,8 @@ RUN apt-get install -y libstdc++6 gcc
 RUN gcc --version
 RUN nvcc --version
 
+# bin directory to run with cachebust
+ARG CACHEBUST=2
 # clone git repository
 RUN git clone https://github.com/labdao/lab-equibind.git
 
@@ -21,7 +23,7 @@ RUN rm Miniconda3-latest-Linux-x86_64.sh
 RUN . "/conda/etc/profile.d/conda.sh"
 ENV PATH="/conda/condabin:${PATH}"
 # RUN conda create --name colabfold-conda python=3.7 -y
-RUN conda env create -f EquiBind/environment_cpuonly.yml --name equibind-conda
+RUN conda env create -f lab-equibind/environment_cpuonly.yml --name equibind-conda
 # Switch to the new environment:
 SHELL ["conda", "run", "-n", "equibind-conda", "/bin/bash", "-c"] 
 RUN conda update -n base conda -y
