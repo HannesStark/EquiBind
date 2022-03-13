@@ -1,0 +1,272 @@
+################################################################################
+                           
+#####  ######  ######  ######    ###   #     # ######
+#     # #     # #     # #     #    #    ##    # #     #
+#     # #     # #     # #     #    #    # #   # #     #
+######  #     # ######  ######     #    #  #  # #     #
+#       #     # #     # #     #    #    #   # # #     #
+#       #     # #     # #     #    #    #    ## #     #
+#       ######  ######  ######    ###   #     # ######  v.2020
+
+################################################################################
+
+Table of Contents:
+PART I.   Introduction to the PDBbind database 
+PART II.  Description of the index files
+PART III. About the processed structures of protein-ligand complexes
+PART IV.  Description of the "refined set"
+PART V.   Description of the "core set"
+
+################################################################################
+
+PART I. Introduction to the PDBbind database 
+
+The PDBbind database aims at building a comprehensive collection of 
+experimentally measured binding affinity data for all types of biomolecular
+complexes deposited in the Protein Data Bank (PDB). It provides an essential 
+linkage between energetic and structural information of those complexes, which 
+is helpful for various studies relevant to molecular recognition.
+
+A proto-type of the PDBbind database was developed in Prof. Shaomeng Wang's 
+group at the University of Michigan, which was first published in 2004. This 
+database has been maintained by Prof. Renxiao Wang's group at the Shanghai 
+Institute of Organic Chemistry (Chinese Academy of Sciences) since 2006. 
+It is now maintained by Prof. Renxiao Wang's group at Fudan University in 
+China.  
+
+The PDBbind database has been updated on an annual base to keep up with the 
+growth of the Protein Data Bank. It can be assessed at the web portal at 
+http://www.pdbbind-cn.org/, where the registered users can download this 
+data package.  
+
+This release contains PDBbind version 2020, which is based on the contents of 
+PDB officially released by Jan 1st, 2020. This release provides binding data of 
+a total of 23496 biomolecular complexes, including protein-ligand (19443), 
+nucleic acid-ligand (149), protein-nucleic acid (1052), and protein-protein 
+complexes (2852). All binding data were curated by ourselves from ~40500 
+original references. 
+
+For more information on the PDBbind database, please also refer to
+"pdbbind_2020_intro.pdf" included in this package. To cite the PDBbind 
+database, please use the following references: 
+
+(1) Liu,Z.H. et al. Acc.Chem.Res. 2017, 50, 302-309. (PDBbind v.2016)
+(2) Liu,Z.H. et al. Bioinformatics, 2015, 31, 405-412. (PDBbind v.2014)
+(3) Li,Y. et al. J.Chem.Inf.Model., 2014, 54, 1700-1716.(PDBbind v.2013)
+(4) Cheng,T.J. et al. J.Chem.Inf.Model., 2009, 49, 1079-1093. (PDBbind v.2009)
+(5) Wang,R.X. et al. J.Med.Chem., 2005, 48, 4111-4119. (PDBbind proto-type)
+(6) Wang,R.X. et al. J.Med.Chem., 2004, 47, 2977-2980. (PDBbind proto-type)
+
+###############################################################################
+
+PART II. Description of the index files
+
+For the users' convenience, a number of index files are provided, which 
+summarize the basic contents of the PDBbind data sets. These index files can 
+be found under the "index/" directory in this data package, including:
+
+"INDEX_general_PL.2020": List of protein-small ligand complexes with known 
+binding data, i.e. the "general set" of protein-ligand complexes. 
+
+"INDEX_general_PL_data.2020": List of the "general set" of protein-small 
+ligand complexes with formatted binding data.  
+
+"INDEX_general_PL_name.2020": List of the "general set" of protein-small 
+ligand complexes with protein names and UniProt IDs.
+
+"INDEX_refined_set.2020": List of the selected "refined set" of protein-small 
+ligand complexes with known binding data.
+ 
+"INDEX_refined_data.2020": List of the "refined set" of protein-small ligand 
+complexes with formatted binding data.
+
+"INDEX_refined_name.2020": List of the "refined set" of protein-small ligand 
+complexes with protein names and UniProt IDs.
+
+"INDEX_general_PN.2020": List of protein-nucleic acid complexes with 
+known binding data, i.e the "general set" of protein-nucleic acid complexes.
+
+"INDEX_general_PP.2020": List of protein-protein (peptide) complexes with 
+known binding data, i.e. the "general set" of protein-protein complexes. 
+
+"INDEX_general_NL.2020": List of nucleic acid-small ligand complexes with 
+known binding data, i.e. the "general set" of nucleic acid-ligand complexes. 
+
+###############################################################################
+
+PART III. About the processed structures of protein-ligand complexes
+
+This data package also includes processed, "clean" structural files for ALL 
+19443 protein-small ligand complexes in the "general set". These structural 
+files can be readily utilized by most molecular modeling software. An index 
+of these complexes, i.e. "INDEX_structure.2020", can be found under the 
+"index" directory. 
+
+Note: we provide processed structural files only for the complexes formed 
+by proteins and small-molecule ligands. Other types of complexes, e.g. 
+protein-protein or protein-nucleic acid complexes, are not available by now.
+Nevertheless, we do plan to add other types of complexes once we have more 
+human power.  
+
+Each complex is processed by the following methods:
+
+(1) Each complex is saved in a subdirectory named after its PDB code:
+
+    e.g. 1bxo/
+
+    It is split into a protein molecule saved in the PDB format:
+
+    e.g. 1bxo_protein.pdb
+
+    and a ligand molecule saved in the Tripos Mol2 format and the MDL SDF 
+    format:
+
+    e.g. 1bxo_ligand.mol2 & 1bxo_ligand.sdf
+
+    For convenience in display or analysis, another PDB file includes only 
+    the binding pocket, i.e. all residues within 10A from the ligand. 
+
+    e.g. 1bxo_pocket.pdb
+
+    When adding hydrogen atoms to the protein and the ligand, a simple 
+    protonation scheme under the neutral pH condition are applied: 
+    On the protein side, Asp, Glu, and His residues are deprotonated; while 
+    Lys and Arg residues are protonated; on the ligand side, carboxylic, 
+    sulfonic, and phosphoric acid groups are deprotonated; while aliphatic 
+    amine groups, guanidine and amidine groups are protonated.
+
+    *Importantly*, the ligand molecule in the Mol2 format is presented in 
+    the protonation form as described above; but the ligand molecule in the 
+    SDF format is presented in its neutral form (e.g.-COOH). This is a new
+    feature starting from PDBbind version 2020, which aims at providing more 
+    options. The users should decide which form to use for their own study. 
+
+(2) The protein molecule normally contains a complete "biological unit". 
+    Exceptions are made only if the biological unit is too large (>3000 
+    residues). In such cases, only the peptide chains that are relevant to 
+    ligand binding (within 10A from the ligand) are kept. Structure of the 
+    biological unit of each complex was also downloaded from PDB without 
+    further modifications. Note that a small number of biological units given 
+    by PDB are actually problematic, but to be consistent with PDB, we did 
+    not attempt to fix them (i.e. not to confuse the users).  
+
+(3) Both the protein and the ligand keep their original coordinates from PDB. 
+    Hydrogen atoms are added to both molecules using stardard bond lengths 
+    and bond angles. Coordinates of all atoms, including non-hydrogen atoms 
+    and hydrogen atoms, have NOT been further optimized so that they remain 
+    the same as those in the original PDB files. 
+
+(4) For each protein molecule, all of the atoms are re-numbered continuously 
+    starting from 1 because some molecular modeling softwares require so. 
+    But the residue numbers and chain labels remain the same as those in 
+    the original PDB files. Metal ions and water molecules are saved with 
+    the protein molecule in the "HETATM" section. 
+
+(5) The chemical structure of each ligand molecule was interpreted with a 
+    special computer program based on the original PDB file. It was then 
+    examined manually to correct atom/bond types if necessary. Gasteiger-Huckel
+    partial charges are assigned on each ligand molecule and saved in the
+    Mol2-format file.  
+
+Note that if the ligand molecule in a complex is a peptide, technically it 
+could be classified as a protein-ligand or a protein-protein complex. 
+By our definition, a valid protein-protein complex should consist of at 
+least two different protein molecules, each of which should have at least 
+20 residues. If either molecule is a peptide shorter than 20 residues, it 
+is classified as a protein-ligand complex. 
+
+###############################################################################
+
+PART IV. Description of the "refined set"
+
+As an additional value of PDBbind, some protein-ligand complexes are selected 
+to form a special data set, namely the "refined set". This special set serves 
+as a more solid basis for docking/scoring studies. It is compiled by removing 
+the protein-ligand complexes in the general set with obvious problems in 3D 
+structure, binding data, or other aspects. 
+
+A number of filtering rules are applied to sample selection. Complexes of the 
+following types are NOT accepted into the "refined set":
+
+(1) Concerns on the quality of structures  
+
+    (a) It is not a crystal structure, resolution>2.5A, or R-factor>0.250.
+    (b) The ligand is bound to the protein through a covalent bond.
+    (c) It is a ternary complex, i.e. multiple ligands binding at the same site.
+    (d) Obvious steric clash (<2.0A) exist between ligand and protein.
+    (e) Ratio of the buried solvent-accessible surface of the ligand <15%.
+    (f) Non-standard residues are in direct contact with the ligand, or there
+        are missing fragments on the backbone or sidechain of any pocket
+        residue.
+    (g) The ligand molecule contains atom of uncommon element, such as B, Be, 
+        Si, or metal.
+    (i) There is missing fragment on the ligand structure. 
+    (h) Molecular weight of the ligand >1000 if it is a regular organic 
+        molecule, or it contains >=10 residues if it is a peptide or peptide 
+        mimic.
+
+(2) Concerns on the quality of binding data
+
+    (a) The binding data are IC50 values rather than Kd and Ki values.
+    (b) The binding data are not exact values, e.g. Kd~1pM, Ki<10uM.
+    (c) The binding data fall out of the desired range, i.e. logKa<2.00 
+        (Kd>10mM) or logKa>=12.00 (Kd<=1pM).
+    (d) The protein used in binding assay does not match the one in crystal
+        structure, e.g. of different subtypes, mutants, or species.
+    (e) The ligand used in binding assay does not match the one in crystal
+        structure, e.g. in different forms or having missing fragments. 
+    (f) The protein binds with two ligand molecules at two binding sites, 
+        resulting in two binding constants (i.e. Kd1 and Kd2) significantly 
+        different (>10 folds).
+
+Details of the latest set of rules are described in the following publication: 
+Liu,Z.H. et al. Acc.Chem.Res. 2017, 50, 302-309.
+
+The "refined set" in PDBbind v.2020 consists of 5316 selected protein-ligand 
+complexes. 
+
+*Note*: Although compiled through a set of complex filters, the "refined set" 
+should not be interpreted as a real high-quality data set because various 
+problems may still remain in the selected complexes. The refined set can be 
+used as an easy starting point for most researchers. If necessary, other 
+researchers are welcome to apply even more strigent rules to compile their own 
+data sets based on what are available from PDBbind. 
+
+################################################################################
+
+Part V. Description of the "core set"
+
+Previous releases of PDBbind (up to v.2016) included another speical data set
+called the "core set". This data set is strictly a subset selected from the 
+"refined set". The "core set" is compiled as a relatively small set of 
+high-quality protein-ligand complexes with remarkable diversity in structure 
+as well as binding data. It can serve as a benchmark data set for validating 
+docking/scoring methods. In particular, the "core set" has been the primary 
+test set in the popular Comparative Assessment of Scoring Functions (CASF) 
+benchmark developed by our group. 
+
+Because the "core set" is employed primarily in our CASF benchmark, it is NOT 
+updated on an annual base as the PDBbind database itself. Besides, the 
+"core set" is a lot more than a list of protein-ligand complexes. A huge amount
+of derivative data need to be generated. Therefore, starting from PDBbind
+v.2017, we have decided to isolate the core set from the PDBbind data package.
+The users can download the CASF data package to obtain the core set. The 
+complete CASF data package is available for downloading at our PDBbind-CN 
+web site at http://www.pdbbind-cn.org/casf.asp.
+
+For your information, the latest available "core set" is v.2016, which is 
+compiled based on the contents of PDBbind v.2016. This data set is composed 
+of 285 protein-ligand complexes in 57 clusters. It has been employed in our 
+CASF-2016 benchmark. The methods for compiling this data set can be found in 
+the following publication: 
+
+Su,M.Y. et al. J.Chem.Inf.Model, 2019, 59, 895-913. (CASF-2016)
+
+###############################################################################
+
+Edited by Prof. Renxiao Wang, latest update: August 2021
+
+Department of Medicinal Chemistry,
+School of Pharmacy, Fudan University
+Shanghai, P. R. China
+
