@@ -257,35 +257,6 @@ def safe_index(l, e):
     except:
         return len(l) - 1
 
-def get_receptor_from_cleaned(rec_path):
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=PDBConstructionWarning)
-        structure = biopython_parser.get_structure('random_id', rec_path)
-        rec = structure[0]
-    coords = []
-    c_alpha_coords = []
-    n_coords = []
-    c_coords = []
-    for res_idx, residue in enumerate(rec.get_residues()):
-        residue_coords = []
-        c_alpha, n, c = None, None, None
-        for atom in residue:
-            if atom.name == 'CA':
-                c_alpha = list(atom.get_vector())
-            if atom.name == 'N':
-                n = list(atom.get_vector())
-            if atom.name == 'C':
-                c = list(atom.get_vector())
-            residue_coords.append(list(atom.get_vector()))
-        assert c_alpha != None and n != None and c != None
-        c_alpha_coords.append(c_alpha)
-        n_coords.append(n)
-        c_coords.append(c)
-        coords.append(np.array(residue_coords))
-    c_alpha_coords = np.stack(c_alpha_coords, axis=0)  # [n_residues, 3]
-    n_coords = np.stack(n_coords, axis=0)  # [n_residues, 3]
-    c_coords = np.stack(c_coords, axis=0)  # [n_residues, 3]
-    return rec, coords, c_alpha_coords, n_coords, c_coords
 def get_receptor(rec_path, lig, cutoff):
     conf = lig.GetConformer()
     lig_coords = conf.GetPositions()
@@ -413,7 +384,6 @@ def get_receptor_inference(rec_path):
                 if atom.name == 'C':
                     c = list(atom.get_vector())
                 residue_coords.append(list(atom.get_vector()))
-            # TODO: Also include the chain_coords.append(np.array(residue_coords)) for non amino acids such that they can be used when using the atom representation of the receptor
             if c_alpha != None and n != None and c != None:  # only append residue if it is an amino acid and not some weired molecule that is part of the complex
                 chain_c_alpha_coords.append(c_alpha)
                 chain_n_coords.append(n)

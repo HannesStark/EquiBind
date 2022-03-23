@@ -1,7 +1,7 @@
 import argparse
 import sys
 
-from copy import copy, deepcopy
+from copy import deepcopy
 
 import os
 
@@ -14,8 +14,8 @@ from tqdm import tqdm
 
 from commons.geometry_utils import rigid_transform_Kabsch_3D, get_torsions, get_dihedral_vonMises, apply_changes
 from commons.logger import Logger
-from commons.process_mols import read_molecule, get_receptor, get_lig_graph_revised, \
-    get_rec_graph, get_receptor_atom_subgraph, get_receptor_from_cleaned, get_geometry_graph, get_geometry_graph_ring, \
+from commons.process_mols import read_molecule, get_lig_graph_revised, \
+    get_rec_graph, get_geometry_graph, get_geometry_graph_ring, \
     get_receptor_inference
 
 from train import load_model
