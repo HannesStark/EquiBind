@@ -1,5 +1,5 @@
 # FROM ubuntu:focal
-FROM --platform=linux/amd64 nvidia/cuda:11.6.0-devel-ubuntu20.04 
+FROM --platform=linux/amd64 nvidia/cuda:11.6.0-devel-ubuntu20.04 as base
 
 # installing packages required for installation
 RUN echo "downloading basic packages for installation"
@@ -28,3 +28,7 @@ RUN conda update -n base conda -y
 COPY .
 RUN source /conda/etc/profile.d/conda.sh
 CMD ["conda", "activate", "equibind-conda"]
+
+# run tests
+FROM base as test
+RUN python inference.py --config=configs_clean/inference.yml
