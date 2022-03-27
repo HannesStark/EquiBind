@@ -25,7 +25,7 @@ RUN conda env create -f lab-equibind/environment_cpuonly.yml --name equibind-con
 # Switch to the new environment:
 SHELL ["conda", "run", "-n", "equibind-conda", "/bin/bash", "-c"] 
 RUN conda update -n base conda -y
-COPY .
+COPY . /lab-equibind/.
 RUN source /conda/etc/profile.d/conda.sh
 CMD ["conda", "activate", "equibind-conda"]
 
