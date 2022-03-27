@@ -20,14 +20,14 @@ ENV PATH="/conda/condabin:${PATH}"
 # RUN conda create --name colabfold-conda python=3.7 -y
 RUN mkdir lab-equibind
 COPY environment_cpuonly.yml /lab-equibind/.
-WORKDIR /lab-equibind
-RUN conda env create -f lab-equibind/environment_cpuonly.yml --name equibind-conda
+RUN conda env create -f lab-equibind/environment_cpuonly.yml
 # Switch to the new environment:
-SHELL ["conda", "run", "-n", "equibind-conda", "/bin/bash", "-c"] 
+SHELL ["conda", "run", "-n", "equibind", "/bin/bash", "-c"] 
 RUN conda update -n base conda -y
 COPY . /lab-equibind/.
-RUN source /conda/etc/profile.d/conda.sh
-CMD ["conda", "activate", "equibind-conda"]
+# RUN source /conda/etc/profile.d/conda.sh
+WORKDIR /lab-equibind
+# CMD ["conda", "activate", "equibind-conda"]
 
 # run tests
 FROM base as test
