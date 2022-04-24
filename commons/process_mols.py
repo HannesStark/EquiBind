@@ -276,12 +276,12 @@ def get_receptor(rec_path, lig, cutoff):
         chain_c_alpha_coords = []
         chain_n_coords = []
         chain_c_coords = []
-        chain_is_water = False
         count = 0
         invalid_res_ids = []
         for res_idx, residue in enumerate(chain):
             if residue.get_resname() == 'HOH':
-                chain_is_water = True
+                invalid_res_ids.append(residue.get_id())
+                continue
             residue_coords = []
             c_alpha, n, c = None, None, None
             for atom in residue:
@@ -309,16 +309,14 @@ def get_receptor(rec_path, lig, cutoff):
             min_distance = distances.min()
         else:
             min_distance = np.inf
-        if chain_is_water:
-            min_distances.append(np.inf)
-        else:
-            min_distances.append(min_distance)
+
+        min_distances.append(min_distance)
         lengths.append(count)
         coords.append(chain_coords)
         c_alpha_coords.append(np.array(chain_c_alpha_coords))
         n_coords.append(np.array(chain_n_coords))
         c_coords.append(np.array(chain_c_coords))
-        if min_distance < cutoff and not chain_is_water:
+        if min_distance < cutoff:
             valid_chain_ids.append(chain.get_id())
     min_distances = np.array(min_distances)
     if len(valid_chain_ids) == 0:
@@ -368,12 +366,12 @@ def get_receptor_inference(rec_path):
         chain_c_alpha_coords = []
         chain_n_coords = []
         chain_c_coords = []
-        chain_is_water = False
         count = 0
         invalid_res_ids = []
         for res_idx, residue in enumerate(chain):
             if residue.get_resname() == 'HOH':
-                chain_is_water = True
+                invalid_res_ids.append(residue.get_id())
+                continue
             residue_coords = []
             c_alpha, n, c = None, None, None
             for atom in residue:
@@ -399,7 +397,7 @@ def get_receptor_inference(rec_path):
         c_alpha_coords.append(np.array(chain_c_alpha_coords))
         n_coords.append(np.array(chain_n_coords))
         c_coords.append(np.array(chain_c_coords))
-        if len(chain_coords) > 0 and not chain_is_water:
+        if len(chain_coords) > 0:
             valid_chain_ids.append(chain.get_id())
     valid_coords = []
     valid_c_alpha_coords = []
