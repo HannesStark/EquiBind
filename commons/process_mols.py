@@ -689,6 +689,7 @@ def get_geometry_graph(lig):
             for two_hop_dst in one_hop_dst.GetNeighbors():
                 two_and_one_hop_idx.append(two_hop_dst.GetIdx())
         all_dst_idx = list(set(two_and_one_hop_idx))
+        if len(all_dst_idx) ==0: continue
         all_dst_idx.remove(src_idx)
         all_src_idx = [src_idx] *len(all_dst_idx)
         edges_src.extend(all_src_idx)
@@ -722,6 +723,7 @@ def get_geometry_graph_ring(lig):
             if src_idx in ring and isRingAromatic(lig,bond_rings[ring_idx]):
                 all_dst_idx.extend(list(ring))
         all_dst_idx = list(set(all_dst_idx))
+        if len(all_dst_idx) == 0: continue
         all_dst_idx.remove(src_idx)
         all_src_idx = [src_idx] *len(all_dst_idx)
         edges_src.extend(all_src_idx)
