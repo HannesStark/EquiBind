@@ -1,0 +1,143 @@
+experiment_name: 'YourExperimentName'
+seed: 1
+data_seed: 1
+
+trainer: binding
+num_epochs: 1000000
+batch_size: 8
+log_iterations: 100
+patience: 150
+num_train:  # leave empty to use all (in param train_names below)
+num_val:  # leave empty to use all
+collate_function: graph_collate_revised
+loss_func: BindingLoss
+loss_params:
+  ot_loss_weight: 1
+  key_point_alignmen_loss_weight: 0 # this does only work if ot_loss_weight is not 0
+  centroid_loss_weight: 0
+  intersection_loss_weight: 1
+  intersection_sigma: 8 # 8 was determined by gridsearch over data
+  intersection_surface_ct: 1 # grid search says 2.5
+  translated_lig_kpt_ot_loss: False
+  kabsch_rmsd_weight: 1
+
+
+train_names: 'data/timesplit_no_lig_overlap_train'
+val_names: 'data/timesplit_no_lig_overlap_val'
+test_names: 'data/timesplit_test'
+num_workers: 0
+dataset_params:
+  geometry_regularization_ring: False
+  geometry_regularization: False
+  use_rdkit_coords: False #
+  bsp_proteins: False # if this is true then the proteins from deepbsp are used, otherwise those from PDBBind. Note that not all proteins are in deepBSP and this only works with e.g. pdbbind_names_without_casf_rec_and_in_bsp as complex_names_path
+  dataset_size:  # mostly for debugging dataset creation. leave empty to use the whole dataset
+  translation_distance: 5.0
+  n_jobs: 20 # leave empty to use num_cpu - 1
+  chain_radius: 10 # only keep chains that have an atom in this radius around the ligand
+  rec_graph_radius: 30
+  c_alpha_max_neighbors: 10 # maximum number of neighbors in the receptor graph unless using rec_atoms
+  lig_graph_radius: 5
+  lig_max_neighbors:
+  pocket_cutoff: 4
+  pocket_mode: match_atoms_to_lig # [match_terminal_atoms, match_atoms, radius_based, lig_atoms, match_atoms_to_lig]
+  remove_h: False
+  only_polar_hydrogens: False
+  # the following are only relevant if use_rec_atoms is true
+  use_rec_atoms: False # if this is true then the same parameter also needs to be true for the model parameters
+  surface_max_neighbors: 5
+  surface_graph_cutoff: 5
+  surface_mesh_cutoff: 2
+  # the following are only relevant if subgraph augmentation is true
+  subgraph_augmentation: False # using subgraph augmentation increases CPU usage. Consider also using num_workers > 0
+  min_shell_thickness: 3
+  # the following is only relevant for rec_subgraph= True
+  rec_subgraph: False # dont forget to also set use_rec_atoms to True IN THE MODEL PARAMETERS
+  subgraph_radius: 10
+  subgraph_max_neigbor: 8
+  subgraph_cutoff: 4
+
+
+metrics:
+  - pearsonr
+  - rsquared
+  - mean_rmsd
+  - median_rmsd
+  - median_centroid_distance
+  - centroid_distance_less_than_2
+  - mean_centroid_distance
+  - kabsch_rmsd
+  - rmsd_less_than_2
+  - rmsd_less_than_5
+main_metric: rmsd_less_than_2 # used for early stopping etc
+main_metric_goal: 'max'
+
+optimizer: Adam
+optimizer_params:
+  lr: 1.0e-4
+  weight_decay: 1.0e-4 # 1.0e-5 in good run
+clip_grad: 100 # leave empty for no grad clip
+
+scheduler_step_per_batch: False
+lr_scheduler: ReduceLROnPlateau # leave empty to use none
+lr_scheduler_params:
+  factor: 0.6
+  patience: 60
+  min_lr: 8.0e-6
+  mode: 'max'
+  verbose: True
+
+
+# Model parameters
+model_type: 'EquiBind'
+model_parameters:
+  geometry_reg_step_size: 0.001
+  geometry_regularization: False
+  fine_tune: False
+  use_evolved_lig: False # Wether or not to use the evolved lig as final prediction
+  standard_norm_order: True
+  unnormalized_kpt_weights: False # no softmax for the weights that create the keypoints (THIS DOES NOT WORK WITH use_evolved_lig = True) (well, it does not really work at all)
+  lig_evolve: True # whether or not the coordinates are changed in the EGNN layers
+  rec_evolve: True
+  rec_no_softmax: False
+  lig_no_softmax: False
+  centroid_keypts_construction_rec: False
+  centroid_keypts_construction_lig: False
+  centroid_keypts_construction: False # this is old. use the two above
+  move_keypts_back: True # move the constructed keypoints back to the location of the ligand
+  normalize_Z_rec_directions: False
+  normalize_Z_lig_directions: False
+  n_lays: 8  # 5 in  good run
+  debug: False
+  use_rec_atoms: False
+  shared_layers: False # False in good run
+  noise_decay_rate: 0.5
+  noise_initial: 1
+  use_edge_features_in_gmn: True
+  use_mean_node_features: True
+  residue_emb_dim: 64
+  iegmn_lay_hid_dim: 64
+  num_att_heads: 30 # 20 ic  good run
+  dropout: 0.1
+  nonlin: 'lkyrelu' # ['swish', 'lkyrelu']
+  leakyrelu_neg_slope: 1.0e-2 # 1.0e-2 in  good run
+  cross_msgs: True
+  layer_norm: 'BN' # ['0', 'BN', 'LN'] # BN in good run
+  layer_norm_coords: '0' # ['0', 'LN'] # 0 in good run
+  final_h_layer_norm: '0' # ['0', 'GN', 'BN', 'LN'] # 0 in good run
+  pre_crossmsg_norm_type:  '0' # ['0', 'GN', 'BN', 'LN']
+  post_crossmsg_norm_type: '0' # ['0', 'GN', 'BN', 'LN']
+  use_dist_in_layers: True
+  skip_weight_h: 0.5 # 0.5 in good run
+  x_connection_init: 0.25 # 0.25 in good run
+  random_vec_dim: 0 # set to 0 to have no stochasticity
+  random_vec_std: 1
+  use_scalar_features: False # Have a look at lig_feature_dims in process_mols.py to see what features we are talking about.
+  num_lig_feats:  # leave as None to use all ligand features. Have a look at lig_feature_dims in process_mols.py to see what features we are talking about. If this is 1, only the first of those will be used.
+  normalize_coordinate_update: True
+  rec_square_distance_scale: 10 # divide square distance by 10 to have a nicer separation instead of many 0.00000
+
+
+eval_on_test: False
+# continue training from checkpoint:
+#checkpoint: runs/path_to_the_experiment/last_checkpoint.pt
