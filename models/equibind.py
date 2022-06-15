@@ -1017,7 +1017,14 @@ class EquiBind(nn.Module):
     def forward(self, lig_graph, rec_graph, geometry_graph=None, complex_names=None, epoch=0):
         if self.debug: log(complex_names)
         predicted_ligs_coords_list = []
-        outputs = self.iegmn(lig_graph, rec_graph, geometry_graph, complex_names, epoch)
+        failsafe = lig_graph.ndata['feat']
+        try:
+            outputs = self.iegmn(lig_graph, rec_graph, geometry_graph, complex_names, epoch)
+        except AssertionError as e:
+            raise e
+        finally:
+            lig_graph.ndata['feat'] = failsafe
+        
         evolved_ligs = outputs[4]
         if self.evolve_only:
             return evolved_ligs, outputs[2], outputs[3], outputs[0], outputs[1], outputs[5]
