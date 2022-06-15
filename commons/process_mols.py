@@ -428,8 +428,10 @@ def get_receptor_inference(rec_path):
     assert sum(valid_lengths) == len(c_alpha_coords)
     return rec, coords, c_alpha_coords, n_coords, c_coords
 
-def get_rdkit_coords(mol):
+def get_rdkit_coords(mol, seed = None):
     ps = AllChem.ETKDGv2()
+    if seed is not None:
+        ps.randomSeed = seed
     id = AllChem.EmbedMolecule(mol, ps)
     if id == -1:
         print('rdkit coords could not be generated without using random coords. using random coords now.')
@@ -567,7 +569,6 @@ def get_rec_graph(rec, rec_coords, c_alpha_coords, n_coords, c_coords, use_rec_a
                                            )
     else:
         return get_calpha_graph(rec, c_alpha_coords, n_coords, c_coords, rec_radius, c_alpha_max_neighbors)
-
 
 def get_lig_graph(mol, lig_coords, radius=20, max_neighbor=None):
     ################### Build the k-NN graph ##############################
@@ -854,6 +855,7 @@ def get_lig_graph_revised(mol, name, radius=20, max_neighbors=None, use_rdkit_co
             log(
                 f'The lig_radius {radius} was too small for one lig atom such that it had no neighbors. So we connected {i} to the closest other lig atom {dst}')
         assert i not in dst
+        assert dst != []
         src = [i] * len(dst)
         src_list.extend(src)
         dst_list.extend(dst)
