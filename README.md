@@ -32,7 +32,7 @@ If you want to train one of our models with the data then:
 ## Step 1: What you need as input
 
 Ligand files of the formats ``.mol2`` or ``.sdf`` or ``.pdbqt`` or ``.pdb`` whose names contain the string `ligand` (your ligand files should contain **all** hydrogens). \
-Receptor files of the format ``.pdb`` whose names contain the string `protein`.\
+Receptor files of the format ``.pdb`` whose names contain the string `protein`. We ran [reduce](https://github.com/rlabduke/reduce) on our training proteins. Maybe you also want to run it on your protein.\
 For each complex you want to predict you need a directory containing the ligand and receptor file. Like this: 
 ```
 my_data_folder
