@@ -44,7 +44,7 @@ import faulthandler
 faulthandler.enable()
 
 
-def parse_arguments():
+def parse_arguments(arglist = None):
     p = argparse.ArgumentParser()
     p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs_clean/inference.yml')
     p.add_argument('--checkpoint', type=str, help='path to .pt file in a checkpoint directory')
@@ -110,10 +110,19 @@ def parse_arguments():
     p.add_argument('--eval_on_test', type=bool, default=True, help='runs evaluation on test set if true')
     p.add_argument('--check_se3_invariance', type=bool, default=False, help='check it instead of generating files')
     p.add_argument('--num_confs', type=int, default=1, help='num_confs if using rdkit conformers')
-    p.add_argument('--use_rdkit_coords', type=bool, default=None,
+    p.add_argument('--use_rdkit_coords', action="store_true",
+                   help='override the rkdit usage behavior of the used model')
+    p.add_argument('--no_use_rdkit_coords', action="store_false", dest = "use_rdkit_coords",
                    help='override the rkdit usage behavior of the used model')
 
-    return p.parse_args()
+    cmdline_parser = deepcopy(p)
+    args = p.parse_args(arglist)
+    clear_defaults = {key: argparse.SUPPRESS for key in args.__dict__}
+    cmdline_parser.set_defaults(**clear_defaults)
+    cmdline_parser._defaults = {}
+    cmdline_args = cmdline_parser.parse_args(arglist)
+    
+    return args, cmdline_args
 
 
 def inference(args, tune_args=None):
@@ -437,7 +446,7 @@ def inference_from_files(args):
 
 
 if __name__ == '__main__':
-    args = parse_arguments()
+    args, cmdline_args = parse_arguments()
 
     if args.config:
         config_dict = yaml.load(args.config, Loader=yaml.FullLoader)
@@ -447,6 +456,8 @@ if __name__ == '__main__':
                 for v in value:
                     arg_dict[key].append(v)
             else:
+                if key in cmdline_args:
+                    continue
                 arg_dict[key] = value
         args.config = args.config.name
     else:
@@ -460,7 +471,7 @@ if __name__ == '__main__':
         with open(os.path.join(os.path.dirname(args.checkpoint), 'train_arguments.yaml'), 'r') as arg_file:
             checkpoint_dict = yaml.load(arg_file, Loader=yaml.FullLoader)
         for key, value in checkpoint_dict.items():
-            if key not in config_dict.keys():
+            if (key not in config_dict.keys()) and (key not in cmdline_args):
                 if isinstance(value, list):
                     for v in value:
                         arg_dict[key].append(v)
