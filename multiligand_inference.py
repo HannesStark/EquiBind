@@ -37,26 +37,26 @@ from models.equibind import EquiBind
 
 def parse_arguments(arglist = None):
     p = argparse.ArgumentParser()    
+    p.add_argument("-l", "--ligands_sdf", type=str, help = "A single sdf file containing all ligands to be screened when running in screening mode")
+    p.add_argument("-r", "--rec_pdb", type = str, help = "The receptor to dock the ligands in --ligands_sdf against")
+    p.add_argument('-o', '--output_directory', type=str, default=None, help='path where to put the predicted results')
     p.add_argument('--config', type=argparse.FileType(mode='r'), default=None)
     p.add_argument('--checkpoint', '--model', dest = "checkpoint",
                    type=str, help='path to .pt file containing the model used for inference. '
                    'Defaults to runs/flexible_self_docking/best_checkpoint.pt in the same directory as the file being run')
     p.add_argument('--train_args', type = str, help = "Path to a yaml file containing the parameters that were used to train the model. "
-                    "If not supplied, it is assumed that a file named 'train_arguments.yaml' is located in the same directory as the model checkpoint")
-    p.add_argument('-o', '--output_directory', type=str, default=None, help='path where to put the predicted results')
-    p.add_argument('--batch_size', type=int, default=8, help='samples that will be processed in parallel')
-    p.add_argument('--seed', type=int, default=1, help='seed for reproducibility')
-    p.add_argument('--device', type=str, default='cuda', help='What device to train on: cuda or cpu')
-    p.add_argument('--num_confs', type=int, default=1, help='num_confs if using rdkit conformers')
-    p.add_argument('--use_rdkit_coords', action="store_true", help='override the rkdit usage behavior of the used model')
     p.add_argument('--no_skip', dest = "skip_in_output", action = "store_false", help = 'skip input files that already have corresponding folders in the output directory. Used to resume a large interrupted computation')
-    p.add_argument("--no_run_corrections", dest = "run_corrections", action = "store_false", help = "possibility of turning off running fast point cloud ligand fitting")
-    p.add_argument("-l", "--ligands_sdf", type=str, help = "A single sdf file containing all ligands to be screened when running in screening mode")
-    p.add_argument("-r", "--rec_pdb", type = str, help = "The receptor to dock the ligands in --ligands_sdf against")
+                    "If not supplied, it is assumed that a file named 'train_arguments.yaml' is located in the same directory as the model checkpoint")
+    p.add_argument('--batch_size', type=int, default=8, help='samples that will be processed in parallel')
     p.add_argument("--n_workers_data_load", type = int, default = 4, help = "The number of cores used for loading the ligands and generating the graphs used as input to the model")
+    p.add_argument('--use_rdkit_coords', action="store_true", help='override the rkdit usage behavior of the used model')
+    p.add_argument('--device', type=str, default='cuda', help='What device to train on: cuda or cpu')
+    p.add_argument('--seed', type=int, default=1, help='seed for reproducibility')
+    p.add_argument('--num_confs', type=int, default=1, help='num_confs if using rdkit conformers')
     p.add_argument("--lig_slice", help = "Run only a slice of the provided ligand file. Like in python, this slice is HALF-OPEN. Should be provided in the format --lig_slice start,end")
     p.add_argument("--lazy_dataload", dest = "lazy_dataload", action="store_true", default = None, help = "Turns on lazy dataloading. If on, will postpone rdkit parsing of each ligand until it is requested.")
     p.add_argument("--no_lazy_dataload", dest = "lazy_dataload", action="store_false", default = None, help = "Turns off lazy dataloading. If on, will postpone rdkit parsing of each ligand until it is requested.")
+    p.add_argument("--no_run_corrections", dest = "run_corrections", action = "store_false", help = "possibility of turning off running fast point cloud ligand fitting")
 
     cmdline_parser = deepcopy(p)
     args = p.parse_args(arglist)
