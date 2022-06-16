@@ -45,10 +45,10 @@ def parse_arguments(arglist = None):
                    type=str, help='path to .pt file containing the model used for inference. '
                    'Defaults to runs/flexible_self_docking/best_checkpoint.pt in the same directory as the file being run')
     p.add_argument('--train_args', type = str, help = "Path to a yaml file containing the parameters that were used to train the model. "
-    p.add_argument('--no_skip', dest = "skip_in_output", action = "store_false", help = 'skip input files that already have corresponding folders in the output directory. Used to resume a large interrupted computation')
                     "If not supplied, it is assumed that a file named 'train_arguments.yaml' is located in the same directory as the model checkpoint")
+    p.add_argument('--no_skip', dest = "skip_in_output", action = "store_false", help = 'skip input files that already have corresponding folders in the output directory. Used to resume a large interrupted computation')
     p.add_argument('--batch_size', type=int, default=8, help='samples that will be processed in parallel')
-    p.add_argument("--n_workers_data_load", type = int, default = 4, help = "The number of cores used for loading the ligands and generating the graphs used as input to the model")
+    p.add_argument("--n_workers_data_load", type = int, default = 0, help = "The number of cores used for loading the ligands and generating the graphs used as input to the model. 0 means run in correct process.")
     p.add_argument('--use_rdkit_coords', action="store_true", help='override the rkdit usage behavior of the used model')
     p.add_argument('--device', type=str, default='cuda', help='What device to train on: cuda or cpu')
     p.add_argument('--seed', type=int, default=1, help='seed for reproducibility')
