@@ -5,18 +5,20 @@ from rdkit.Chem import SDMolSupplier, SanitizeMol, SanitizeFlags, PropertyMol, S
 
 
 class Ligands(Dataset):
-    def __init__(self, ligpath, rec_graph, args, lazy = False, slice = None, skips = None, ext = None, addH = None, rdkit_seed = None):
+    def __init__(self, ligpath, rec_graph, args, lazy = None, slice = None, skips = None, ext = None, addH = None, rdkit_seed = None):
         self.ligpath = ligpath
         self.rec_graph = rec_graph
         self.args = args
         self.dp = args.dataset_params
         self.use_rdkit_coords = args.use_rdkit_coords
         self.device = args.device
-        self.lazy = lazy
         self.rdkit_seed = rdkit_seed
         
         ##Default argument handling
         self.skips = skips if skips is not None else set()
+
+        extensions_requiring_conformer_generation = ["smi"]
+        extensions_defaulting_to_lazy = ["smi"]
 
         if ext is None:
             try:
@@ -24,6 +26,15 @@ class Ligands(Dataset):
             except (AttributeError, KeyError):
                 ext = "sdf"
         
+
+        if lazy is None:
+            if ext in extensions_defaulting_to_lazy:
+                self.lazy = True
+            else:
+                self.lazy = False
+        else:
+            self.lazy = lazy
+
         if addH is None:
             if ext == "smi":
                 addH = True
@@ -31,7 +42,6 @@ class Ligands(Dataset):
                 addH = False
         self.addH = addH
         
-        extensions_requiring_conformer_generation = ["smi"]
         self.generate_conformer = ext in extensions_requiring_conformer_generation
 
         suppliers = {"sdf": SDMolSupplier, "smi": SmilesMolSupplier}
@@ -48,7 +58,7 @@ class Ligands(Dataset):
         self.failed_ligs = []
         self.true_idx = []
 
-        if not lazy:
+        if not self.lazy:
             self.ligs = []
             for i in range(*self.slice):
                 if i in self.skips:
