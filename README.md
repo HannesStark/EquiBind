@@ -97,6 +97,20 @@ Done! :tada: \
 Your results are saved as `.sdf` files in the directory specified
 in the config file under ``output_directory: 'data/results/output'`` and as tensors at ``runs/flexible_self_docking/predictions_RDKitFalse.pt``!
 
+# Inference for multiple ligands in the same .sdf file and a single receptor
+
+Thanks to @amfaber this is now supported!
+
+    python multiligand_infernce.py -o path/to/output_directory -r path/to/receptor.pdb -l path/to/ligands.sdf
+
+This runs EquiBind on every ligand in ligands.sdf against the protein in receptor.pdb. The outputs are 3 files in output_directory with the following names and contents (see #37 for more details):
+
+failed.txt - contains the index (in the file ligands.sdf) and name of every molecule for which inference failed in a way that was caught and handled.
+success.txt - contains the index (in the file ligands.sdf) and name of every molecule for which inference succeeded
+output.sdf - contains the conformers produced by EquiBind in .sdf format.
+
+
+
 # Reproducing paper numbers
 Download the data and place it as described in the "Dataset" section above.
 ### Using the provided model weights
