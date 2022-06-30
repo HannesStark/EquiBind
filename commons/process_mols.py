@@ -257,35 +257,6 @@ def safe_index(l, e):
     except:
         return len(l) - 1
 
-def get_receptor_from_cleaned(rec_path):
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=PDBConstructionWarning)
-        structure = biopython_parser.get_structure('random_id', rec_path)
-        rec = structure[0]
-    coords = []
-    c_alpha_coords = []
-    n_coords = []
-    c_coords = []
-    for res_idx, residue in enumerate(rec.get_residues()):
-        residue_coords = []
-        c_alpha, n, c = None, None, None
-        for atom in residue:
-            if atom.name == 'CA':
-                c_alpha = list(atom.get_vector())
-            if atom.name == 'N':
-                n = list(atom.get_vector())
-            if atom.name == 'C':
-                c = list(atom.get_vector())
-            residue_coords.append(list(atom.get_vector()))
-        assert c_alpha != None and n != None and c != None
-        c_alpha_coords.append(c_alpha)
-        n_coords.append(n)
-        c_coords.append(c)
-        coords.append(np.array(residue_coords))
-    c_alpha_coords = np.stack(c_alpha_coords, axis=0)  # [n_residues, 3]
-    n_coords = np.stack(n_coords, axis=0)  # [n_residues, 3]
-    c_coords = np.stack(c_coords, axis=0)  # [n_residues, 3]
-    return rec, coords, c_alpha_coords, n_coords, c_coords
 def get_receptor(rec_path, lig, cutoff):
     conf = lig.GetConformer()
     lig_coords = conf.GetPositions()
@@ -305,12 +276,12 @@ def get_receptor(rec_path, lig, cutoff):
         chain_c_alpha_coords = []
         chain_n_coords = []
         chain_c_coords = []
-        chain_is_water = False
         count = 0
         invalid_res_ids = []
         for res_idx, residue in enumerate(chain):
             if residue.get_resname() == 'HOH':
-                chain_is_water = True
+                invalid_res_ids.append(residue.get_id())
+                continue
             residue_coords = []
             c_alpha, n, c = None, None, None
             for atom in residue:
@@ -338,16 +309,14 @@ def get_receptor(rec_path, lig, cutoff):
             min_distance = distances.min()
         else:
             min_distance = np.inf
-        if chain_is_water:
-            min_distances.append(np.inf)
-        else:
-            min_distances.append(min_distance)
+
+        min_distances.append(min_distance)
         lengths.append(count)
         coords.append(chain_coords)
         c_alpha_coords.append(np.array(chain_c_alpha_coords))
         n_coords.append(np.array(chain_n_coords))
         c_coords.append(np.array(chain_c_coords))
-        if min_distance < cutoff and not chain_is_water:
+        if min_distance < cutoff:
             valid_chain_ids.append(chain.get_id())
     min_distances = np.array(min_distances)
     if len(valid_chain_ids) == 0:
@@ -397,12 +366,12 @@ def get_receptor_inference(rec_path):
         chain_c_alpha_coords = []
         chain_n_coords = []
         chain_c_coords = []
-        chain_is_water = False
         count = 0
         invalid_res_ids = []
         for res_idx, residue in enumerate(chain):
             if residue.get_resname() == 'HOH':
-                chain_is_water = True
+                invalid_res_ids.append(residue.get_id())
+                continue
             residue_coords = []
             c_alpha, n, c = None, None, None
             for atom in residue:
@@ -413,7 +382,6 @@ def get_receptor_inference(rec_path):
                 if atom.name == 'C':
                     c = list(atom.get_vector())
                 residue_coords.append(list(atom.get_vector()))
-            # TODO: Also include the chain_coords.append(np.array(residue_coords)) for non amino acids such that they can be used when using the atom representation of the receptor
             if c_alpha != None and n != None and c != None:  # only append residue if it is an amino acid and not some weired molecule that is part of the complex
                 chain_c_alpha_coords.append(c_alpha)
                 chain_n_coords.append(n)
@@ -429,7 +397,7 @@ def get_receptor_inference(rec_path):
         c_alpha_coords.append(np.array(chain_c_alpha_coords))
         n_coords.append(np.array(chain_n_coords))
         c_coords.append(np.array(chain_c_coords))
-        if len(chain_coords) > 0 and not chain_is_water:
+        if len(chain_coords) > 0:
             valid_chain_ids.append(chain.get_id())
     valid_coords = []
     valid_c_alpha_coords = []
@@ -460,8 +428,10 @@ def get_receptor_inference(rec_path):
     assert sum(valid_lengths) == len(c_alpha_coords)
     return rec, coords, c_alpha_coords, n_coords, c_coords
 
-def get_rdkit_coords(mol):
+def get_rdkit_coords(mol, seed = None):
     ps = AllChem.ETKDGv2()
+    if seed is not None:
+        ps.randomSeed = seed
     id = AllChem.EmbedMolecule(mol, ps)
     if id == -1:
         print('rdkit coords could not be generated without using random coords. using random coords now.')
@@ -600,7 +570,6 @@ def get_rec_graph(rec, rec_coords, c_alpha_coords, n_coords, c_coords, use_rec_a
     else:
         return get_calpha_graph(rec, c_alpha_coords, n_coords, c_coords, rec_radius, c_alpha_max_neighbors)
 
-
 def get_lig_graph(mol, lig_coords, radius=20, max_neighbor=None):
     ################### Build the k-NN graph ##############################
     num_nodes = lig_coords.shape[0]
@@ -721,6 +690,7 @@ def get_geometry_graph(lig):
             for two_hop_dst in one_hop_dst.GetNeighbors():
                 two_and_one_hop_idx.append(two_hop_dst.GetIdx())
         all_dst_idx = list(set(two_and_one_hop_idx))
+        if len(all_dst_idx) ==0: continue
         all_dst_idx.remove(src_idx)
         all_src_idx = [src_idx] *len(all_dst_idx)
         edges_src.extend(all_src_idx)
@@ -754,6 +724,7 @@ def get_geometry_graph_ring(lig):
             if src_idx in ring and isRingAromatic(lig,bond_rings[ring_idx]):
                 all_dst_idx.extend(list(ring))
         all_dst_idx = list(set(all_dst_idx))
+        if len(all_dst_idx) == 0: continue
         all_dst_idx.remove(src_idx)
         all_src_idx = [src_idx] *len(all_dst_idx)
         edges_src.extend(all_src_idx)
@@ -884,6 +855,7 @@ def get_lig_graph_revised(mol, name, radius=20, max_neighbors=None, use_rdkit_co
             log(
                 f'The lig_radius {radius} was too small for one lig atom such that it had no neighbors. So we connected {i} to the closest other lig atom {dst}')
         assert i not in dst
+        assert dst != []
         src = [i] * len(dst)
         src_list.extend(src)
         dst_list.extend(dst)

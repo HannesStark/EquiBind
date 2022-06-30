@@ -11,7 +11,7 @@ ligand’s bound pose and orientation. EquiBind
 achieves significant speed-ups and better quality
 compared to traditional and recent baselines.
  If you have questions, don't hesitate to open an issue or ask me
-via [hannes.staerk@tum.de](hannes.staerk@tum.de)
+via [hstark@mit.edu](hstark@mit.edu)
 or [social media](https://hannes-stark.com/) or Octavian Ganea via [oct@mit.edu](oct@mit.edu). We are happy to hear from you!
 
 ![](.fig_intro.jpg)
@@ -20,11 +20,11 @@ or [social media](https://hannes-stark.com/) or Octavian Ganea via [oct@mit.edu]
 
 # Dataset
 
-Our preprocessed data (see dataset section in the paper Appendix) is available from [zenodo](https://zenodo.org/record/6034088). \
+Our preprocessed data (see dataset section in the paper Appendix) is available from [zenodo](https://zenodo.org/record/6408497). \
 The files in `data` contain the names for the time-based data split.
 
 If you want to train one of our models with the data then: 
-1. download it from [zenodo](https://zenodo.org/record/6034088) 
+1. download it from [zenodo](https://zenodo.org/record/6408497) 
 2. unzip the directory and place it into `data` such that you have the path `data/PDBBind`
 
 
@@ -32,8 +32,8 @@ If you want to train one of our models with the data then:
 
 ## Step 1: What you need as input
 
-Ligand files of the formats ``.mol2`` or ``.sdf`` or ``.pdbqt`` or ``.pdb`` whose names contain the string `ligand`. \
-Receptor files of the format ``.pdb`` whose names contain the string `protein`.\
+Ligand files of the formats ``.mol2`` or ``.sdf`` or ``.pdbqt`` or ``.pdb`` whose names contain the string `ligand` (your ligand files should contain **all** hydrogens). \
+Receptor files of the format ``.pdb`` whose names contain the string `protein`. We ran [reduce](https://github.com/rlabduke/reduce) on our training proteins. Maybe you also want to run it on your protein.\
 For each complex you want to predict you need a directory containing the ligand and receptor file. Like this: 
 ```
 my_data_folder
@@ -97,6 +97,19 @@ Then run:
 Done! :tada: \
 Your results are saved as `.sdf` files in the directory specified
 in the config file under ``output_directory: 'data/results/output'`` and as tensors at ``runs/flexible_self_docking/predictions_RDKitFalse.pt``!
+
+# Inference for multiple ligands in the same .sdf file and a single receptor
+
+
+    python multiligand_infernce.py -o path/to/output_directory -r path/to/receptor.pdb -l path/to/ligands.sdf
+
+This runs EquiBind on every ligand in ligands.sdf against the protein in receptor.pdb. The outputs are 3 files in output_directory with the following names and contents:
+
+failed.txt - contains the index (in the file ligands.sdf) and name of every molecule for which inference failed in a way that was caught and handled.\
+success.txt - contains the index (in the file ligands.sdf) and name of every molecule for which inference succeeded.\
+output.sdf - contains the conformers produced by EquiBind in .sdf format.
+
+
 
 # Reproducing paper numbers
 Download the data and place it as described in the "Dataset" section above.
