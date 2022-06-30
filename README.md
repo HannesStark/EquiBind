@@ -4,8 +4,7 @@
 
 ### [Paper on arXiv](https://arxiv.org/abs/2202.05146)
 
-EquiBind, is a
-SE(3)-equivariant geometric deep learning model
+EquiBind, is a SE(3)-equivariant geometric deep learning model
 performing direct-shot prediction of both i) the receptor binding location (blind docking) and ii) the
 ligand’s bound pose and orientation. EquiBind
 achieves significant speed-ups and better quality
