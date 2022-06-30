@@ -318,122 +318,125 @@ def inference_from_files(args):
     dp = args.dataset_params
     use_rdkit_coords = args.use_rdkit_coords if args.use_rdkit_coords != None else args.dataset_params[
         'use_rdkit_coords']
-    names = os.listdir(args.inference_path) if args.inference_path != None else tqdm(read_strings_from_txt('data/timesplit_test'))
+    names = os.listdir(args.inference_path) if (args.inference_path != None) else tqdm(read_strings_from_txt('data/timesplit_test'))
     for idx, name in enumerate(names):
-        print(f'\nProcessing {name}: complex {idx + 1} of {len(names)}')
-        file_names = os.listdir(os.path.join(args.inference_path, name))
-        rec_name = [i for i in file_names if 'rec.pdb' in i or 'protein' in i][0]
-        lig_names = [i for i in file_names if 'ligand' in i]
-        rec_path = os.path.join(args.inference_path, name, rec_name)
-        for lig_name in lig_names:
-            if not os.path.exists(os.path.join(args.inference_path, name, lig_name)):
-                raise ValueError(f'Path does not exist: {os.path.join(args.inference_path, name, lig_name)}')
-            print(f'Trying to load {os.path.join(args.inference_path, name, lig_name)}')
-            lig = read_molecule(os.path.join(args.inference_path, name, lig_name), sanitize=True)
-            if lig != None:  # read mol2 file if sdf file cannot be sanitized
-                used_lig = os.path.join(args.inference_path, name, lig_name)
-                break
-        if lig_names == []: raise ValueError(f'No ligand files found. The ligand file has to contain \'ligand\'.')
-        if lig == None: raise ValueError(f'None of the ligand files could be read: {lig_names}')
-        print(f'Docking the receptor {os.path.join(args.inference_path, name, rec_name)}\nTo the ligand {used_lig}')
+        if not name.startswith('.'):
+            print(f'\nProcessing {name}: complex {idx + 1} of {len(names)}')
+            file_names = os.listdir(os.path.join(args.inference_path, name))
+            rec_name = [i for i in file_names if 'rec.pdb' in i or 'protein' in i][0]
+            lig_names = [i for i in file_names if 'ligand' in i]
+            rec_path = os.path.join(args.inference_path, name, rec_name)
+            for lig_name in lig_names:
+                if not os.path.exists(os.path.join(args.inference_path, name, lig_name)):
+                    raise ValueError(f'Path does not exist: {os.path.join(args.inference_path, name, lig_name)}')
+                print(f'Trying to load {os.path.join(args.inference_path, name, lig_name)}')
+                lig = read_molecule(os.path.join(args.inference_path, name, lig_name), sanitize=True)
+                if lig != None:  # read mol2 file if sdf file cannot be sanitized
+                    used_lig = os.path.join(args.inference_path, name, lig_name)
+                    break
+            if lig_names == []: raise ValueError(f'No ligand files found. The ligand file has to contain \'ligand\'.')
+            if lig == None: raise ValueError(f'None of the ligand files could be read: {lig_names}')
+            print(f'Docking the receptor {os.path.join(args.inference_path, name, rec_name)}\nTo the ligand {used_lig}')
 
-        rec, rec_coords, c_alpha_coords, n_coords, c_coords = get_receptor_inference(rec_path)
-        rec_graph = get_rec_graph(rec, rec_coords, c_alpha_coords, n_coords, c_coords,
+            rec, rec_coords, c_alpha_coords, n_coords, c_coords = get_receptor_inference(rec_path)
+            rec_graph = get_rec_graph(rec, rec_coords, c_alpha_coords, n_coords, c_coords,
                                   use_rec_atoms=dp['use_rec_atoms'], rec_radius=dp['rec_graph_radius'],
                                   surface_max_neighbors=dp['surface_max_neighbors'],
                                   surface_graph_cutoff=dp['surface_graph_cutoff'],
                                   surface_mesh_cutoff=dp['surface_mesh_cutoff'],
                                   c_alpha_max_neighbors=dp['c_alpha_max_neighbors'])
-        lig_graph = get_lig_graph_revised(lig, name, max_neighbors=dp['lig_max_neighbors'],
+            lig_graph = get_lig_graph_revised(lig, name, max_neighbors=dp['lig_max_neighbors'],
                                           use_rdkit_coords=use_rdkit_coords, radius=dp['lig_graph_radius'])
-        if 'geometry_regularization' in dp and dp['geometry_regularization']:
-            geometry_graph = get_geometry_graph(lig)
-        elif 'geometry_regularization_ring' in dp and dp['geometry_regularization_ring']:
-            geometry_graph = get_geometry_graph_ring(lig)
-        else:
-            geometry_graph = None
+            if 'geometry_regularization' in dp and dp['geometry_regularization']:
+                geometry_graph = get_geometry_graph(lig)
+            elif 'geometry_regularization_ring' in dp and dp['geometry_regularization_ring']:
+                geometry_graph = get_geometry_graph_ring(lig)
+            else:
+                geometry_graph = None
 
-        start_lig_coords = lig_graph.ndata['x']
-        # Randomly rotate and translate the ligand.
-        rot_T, rot_b = random_rotation_translation(translation_distance=5)
-        if (use_rdkit_coords):
-            lig_coords_to_move = lig_graph.ndata['new_x']
-        else:
-            lig_coords_to_move = lig_graph.ndata['x']
-        mean_to_remove = lig_coords_to_move.mean(dim=0, keepdims=True)
-        input_coords = (rot_T @ (lig_coords_to_move - mean_to_remove).T).T + rot_b
-        lig_graph.ndata['new_x'] = input_coords
+            start_lig_coords = lig_graph.ndata['x']
+            # Randomly rotate and translate the ligand.
+            rot_T, rot_b = random_rotation_translation(translation_distance=5)
+            if (use_rdkit_coords):
+                lig_coords_to_move = lig_graph.ndata['new_x']
+            else:
+                lig_coords_to_move = lig_graph.ndata['x']
+            mean_to_remove = lig_coords_to_move.mean(dim=0, keepdims=True)
+            input_coords = (rot_T @ (lig_coords_to_move - mean_to_remove).T).T + rot_b
+            lig_graph.ndata['new_x'] = input_coords
 
-        if model == None:
-            model = load_model(args, data_sample=(lig_graph, rec_graph), device=device)
-            model.load_state_dict(checkpoint['model_state_dict'])
-            model.to(device)
-            model.eval()
+            if model == None:
+                model = load_model(args, data_sample=(lig_graph, rec_graph), device=device)
+                model.load_state_dict(checkpoint['model_state_dict'])
+                model.to(device)
+                model.eval()
 
-        with torch.no_grad():
-            geometry_graph = geometry_graph.to(device) if geometry_graph != None else None
-            ligs_coords_pred_untuned, ligs_keypts, recs_keypts, rotations, translations, geom_reg_loss = model(
-                lig_graph.to(device), rec_graph.to(device), geometry_graph, complex_names=[name], epoch=0)
+            with torch.no_grad():
+                geometry_graph = geometry_graph.to(device) if geometry_graph != None else None
+                ligs_coords_pred_untuned, ligs_keypts, recs_keypts, rotations, translations, geom_reg_loss = model(
+                    lig_graph.to(device), rec_graph.to(device), geometry_graph, complex_names=[name], epoch=0)
 
-            for lig_coords_pred_untuned, lig_coords, lig_keypts, rec_keypts, rotation, translation in zip(
-                    ligs_coords_pred_untuned, [start_lig_coords], ligs_keypts, recs_keypts, rotations,
-                    translations, ):
-                all_intersection_losses_untuned.append(
-                    compute_revised_intersection_loss(lig_coords_pred_untuned.detach().cpu(), rec_graph.ndata['x'],
+                for lig_coords_pred_untuned, lig_coords, lig_keypts, rec_keypts, rotation, translation in zip(
+                        ligs_coords_pred_untuned, [start_lig_coords], ligs_keypts, recs_keypts, rotations,
+                        translations, ):
+                    all_intersection_losses_untuned.append(
+                        compute_revised_intersection_loss(lig_coords_pred_untuned.detach().cpu(), rec_graph.ndata['x'],
                                                       alpha=0.2, beta=8, aggression=0))
-                all_ligs_coords_pred_untuned.append(lig_coords_pred_untuned.detach().cpu())
-                all_ligs_coords.append(lig_coords.detach().cpu())
-                all_ligs_keypts.append(((rotation @ (lig_keypts).T).T + translation).detach().cpu())
-                all_recs_keypts.append(rec_keypts.detach().cpu())
+                    all_ligs_coords_pred_untuned.append(lig_coords_pred_untuned.detach().cpu())
+                    all_ligs_coords.append(lig_coords.detach().cpu())
+                    all_ligs_keypts.append(((rotation @ (lig_keypts).T).T + translation).detach().cpu())
+                    all_recs_keypts.append(rec_keypts.detach().cpu())
 
-            if args.run_corrections:
-                prediction = ligs_coords_pred_untuned[0].detach().cpu()
-                lig_input = deepcopy(lig)
-                conf = lig_input.GetConformer()
-                for i in range(lig_input.GetNumAtoms()):
-                    x, y, z = input_coords.numpy()[i]
-                    conf.SetAtomPosition(i, Point3D(float(x), float(y), float(z)))
-
-                lig_equibind = deepcopy(lig)
-                conf = lig_equibind.GetConformer()
-                for i in range(lig_equibind.GetNumAtoms()):
-                    x, y, z = prediction.numpy()[i]
-                    conf.SetAtomPosition(i, Point3D(float(x), float(y), float(z)))
-
-                coords_pred = lig_equibind.GetConformer().GetPositions()
-
-                Z_pt_cloud = coords_pred
-                rotable_bonds = get_torsions([lig_input])
-                new_dihedrals = np.zeros(len(rotable_bonds))
-                for idx, r in enumerate(rotable_bonds):
-                    new_dihedrals[idx] = get_dihedral_vonMises(lig_input, lig_input.GetConformer(), r, Z_pt_cloud)
-                optimized_mol = apply_changes(lig_input, new_dihedrals, rotable_bonds)
-
-                coords_pred_optimized = optimized_mol.GetConformer().GetPositions()
-                R, t = rigid_transform_Kabsch_3D(coords_pred_optimized.T, coords_pred.T)
-                coords_pred_optimized = (R @ (coords_pred_optimized).T).T + t.squeeze()
-                all_ligs_coords_corrected.append(coords_pred_optimized)
-
-                if args.output_directory:
-                    if not os.path.exists(f'{args.output_directory}/{name}'):
-                        os.makedirs(f'{args.output_directory}/{name}')
-                    conf = optimized_mol.GetConformer()
-                    for i in range(optimized_mol.GetNumAtoms()):
-                        x, y, z = coords_pred_optimized[i]
+                if args.run_corrections:
+                    prediction = ligs_coords_pred_untuned[0].detach().cpu()
+                    lig_input = deepcopy(lig)
+                    conf = lig_input.GetConformer()
+                    for i in range(lig_input.GetNumAtoms()):
+                        x, y, z = input_coords.numpy()[i]
                         conf.SetAtomPosition(i, Point3D(float(x), float(y), float(z)))
-                    block_optimized = Chem.MolToMolBlock(optimized_mol)
-                    print(f'Writing prediction to {args.output_directory}/{name}/lig_equibind_corrected.sdf')
-                    with open(f'{args.output_directory}/{name}/lig_equibind_corrected.sdf', "w") as newfile:
-                        newfile.write(block_optimized)
-            all_names.append(name)
 
-    path = os.path.join(os.path.dirname(args.checkpoint), f'predictions_RDKit{use_rdkit_coords}.pt')
-    print(f'Saving predictions to {path}')
-    results = {'corrected_predictions': all_ligs_coords_corrected, 'initial_predictions': all_ligs_coords_pred_untuned,
+                    lig_equibind = deepcopy(lig)
+                    conf = lig_equibind.GetConformer()
+                    for i in range(lig_equibind.GetNumAtoms()):
+                        x, y, z = prediction.numpy()[i]
+                        conf.SetAtomPosition(i, Point3D(float(x), float(y), float(z)))
+
+                    coords_pred = lig_equibind.GetConformer().GetPositions()
+
+                    Z_pt_cloud = coords_pred
+                    rotable_bonds = get_torsions([lig_input])
+                    new_dihedrals = np.zeros(len(rotable_bonds))
+                    for idx, r in enumerate(rotable_bonds):
+                        new_dihedrals[idx] = get_dihedral_vonMises(lig_input, lig_input.GetConformer(), r, Z_pt_cloud)
+                    optimized_mol = apply_changes(lig_input, new_dihedrals, rotable_bonds)
+
+                    coords_pred_optimized = optimized_mol.GetConformer().GetPositions()
+                    R, t = rigid_transform_Kabsch_3D(coords_pred_optimized.T, coords_pred.T)
+                    coords_pred_optimized = (R @ (coords_pred_optimized).T).T + t.squeeze()
+                    all_ligs_coords_corrected.append(coords_pred_optimized)
+
+                    if args.output_directory:
+                        if not os.path.exists(f'{args.output_directory}/{name}'):
+                            os.makedirs(f'{args.output_directory}/{name}')
+                        conf = optimized_mol.GetConformer()
+                        for i in range(optimized_mol.GetNumAtoms()):
+                            x, y, z = coords_pred_optimized[i]
+                            conf.SetAtomPosition(i, Point3D(float(x), float(y), float(z)))
+                            block_optimized = Chem.MolToMolBlock(optimized_mol)
+                        print(f'Writing prediction to {args.output_directory}/{name}/lig_equibind_corrected.sdf')
+                        with open(f'{args.output_directory}/{name}/lig_equibind_corrected.sdf', "w") as newfile:
+                                newfile.write(block_optimized)
+                all_names.append(name)
+
+        path = os.path.join(os.path.dirname(args.checkpoint), f'predictions_RDKit{use_rdkit_coords}.pt')
+        print(f'Saving predictions to {path}')
+        results = {'corrected_predictions': all_ligs_coords_corrected, 'initial_predictions': all_ligs_coords_pred_untuned,
                'targets': all_ligs_coords, 'lig_keypts': all_ligs_keypts, 'rec_keypts': all_recs_keypts,
                'names': all_names, 'intersection_losses_untuned': all_intersection_losses_untuned,
                'intersection_losses': all_intersection_losses}
-    torch.save(results, path)
+        torch.save(results, path)
+    else:
+        pass
 
 
 if __name__ == '__main__':
