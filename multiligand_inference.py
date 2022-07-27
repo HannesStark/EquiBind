@@ -213,9 +213,12 @@ def write_while_inferring(dataloader, model, args):
                     failed_file.write("\n")
                 if ligs is None:
                     continue
-                lig_graphs = lig_graphs.to(args.device)
-                rec_graphs = rec_graphs.to(args.device)
-                geometry_graphs = geometry_graphs.to(args.device)
+
+                device = torch.device("cuda:0" if torch.cuda.is_available() and args.device == 'cuda' else "cpu")
+
+                lig_graphs = lig_graphs.to(device)
+                rec_graphs = rec_graphs.to(device)
+                geometry_graphs = geometry_graphs.to(device)
                 
                 
                 out_ligs, out_lig_coords, predictions, successes, failures = run_batch(model, ligs, lig_coords,
