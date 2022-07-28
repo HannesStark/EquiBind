@@ -23,6 +23,7 @@ dependencies:
   - icecream
   - matplotlib
   - tensorboard
+  - psutil
 
 
 
