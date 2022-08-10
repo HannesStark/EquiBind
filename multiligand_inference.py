@@ -50,7 +50,7 @@ def parse_arguments(arglist = None):
     p.add_argument('--batch_size', type=int, default=8, help='samples that will be processed in parallel')
     p.add_argument("--n_workers_data_load", type = int, default = 0, help = "The number of cores used for loading the ligands and generating the graphs used as input to the model. 0 means run in correct process.")
     p.add_argument('--use_rdkit_coords', action="store_true", help='override the rkdit usage behavior of the used model')
-    p.add_argument('--device', type=str, default='cuda', help='What device to train on: cuda or cpu')
+    p.add_argument('--device', type=str, default=None, help='What device to train on: cuda or cpu')
     p.add_argument('--seed', type=int, default=1, help='seed for reproducibility')
     p.add_argument('--num_confs', type=int, default=1, help='num_confs if using rdkit conformers')
     p.add_argument("--lig_slice", help = "Run only a slice of the provided ligand file. Like in python, this slice is HALF-OPEN. Should be provided in the format --lig_slice start,end")
@@ -84,6 +84,9 @@ def get_default_args(args, cmdline_args):
     if args.checkpoint is None:
         args.checkpoint = os.path.join(os.path.dirname(__file__), "runs/flexible_self_docking/best_checkpoint.pt")
     
+    if args.device is None:
+        args.device = "cuda" if torch.cuda.is_available() else "cpu"
+    
     config_dict['checkpoint'] = args.checkpoint
     # overwrite args with args from checkpoint except for the args that were contained in the config file or provided directly in the commandline
     arg_dict = args.__dict__
@@ -96,7 +99,7 @@ def get_default_args(args, cmdline_args):
             checkpoint_dict = yaml.load(arg_file, Loader=yaml.FullLoader)
 
     for key, value in checkpoint_dict.items():
-        if (key not in config_dict.keys()) and (key not in cmdline_args):
+        if (key not in config_dict.keys()) and (key not in cmdline_args) and not key == "device":
             if isinstance(value, list) and key in arg_dict:
                 for v in value:
                     arg_dict[key].append(v)
@@ -106,7 +109,7 @@ def get_default_args(args, cmdline_args):
     return args
 
 def load_rec_and_model(args):
-    device = torch.device("cuda:0" if torch.cuda.is_available() and args.device == 'cuda' else "cpu")
+    device = args.device
     print(f"device = {device}")
     # sys.exit()
     checkpoint = torch.load(args.checkpoint, map_location=device)
