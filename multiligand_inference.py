@@ -37,26 +37,29 @@ from models.equibind import EquiBind
 
 def parse_arguments(arglist = None):
     p = argparse.ArgumentParser()    
-    p.add_argument("-l", "--ligands_sdf", type=str, help = "A single sdf file containing all ligands to be screened when running in screening mode")
-    p.add_argument("-r", "--rec_pdb", type = str, help = "The receptor to dock the ligands in --ligands_sdf against")
-    p.add_argument('-o', '--output_directory', type=str, default=None, help='path where to put the predicted results')
     p.add_argument('--config', type=argparse.FileType(mode='r'), default=None)
     p.add_argument('--checkpoint', '--model', dest = "checkpoint",
                    type=str, help='path to .pt file containing the model used for inference. '
                    'Defaults to runs/flexible_self_docking/best_checkpoint.pt in the same directory as the file being run')
     p.add_argument('--train_args', type = str, help = "Path to a yaml file containing the parameters that were used to train the model. "
                     "If not supplied, it is assumed that a file named 'train_arguments.yaml' is located in the same directory as the model checkpoint")
-    p.add_argument('--no_skip', dest = "skip_in_output", action = "store_false", help = 'skip input files that already have corresponding folders in the output directory. Used to resume a large interrupted computation')
+    p.add_argument('-o', '--output_directory', type=str, default=None, help='path where to put the predicted results')
     p.add_argument('--batch_size', type=int, default=8, help='samples that will be processed in parallel')
     p.add_argument("--n_workers_data_load", type = int, default = 0, help = "The number of cores used for loading the ligands and generating the graphs used as input to the model. 0 means run in correct process.")
     p.add_argument('--use_rdkit_coords', action="store_true", help='override the rkdit usage behavior of the used model')
     p.add_argument('--device', type=str, default=None, help='What device to train on: cuda or cpu')
     p.add_argument('--seed', type=int, default=1, help='seed for reproducibility')
+    p.add_argument('--device', type=str, default=None, help='What device to train on: cuda or cpu')
     p.add_argument('--num_confs', type=int, default=1, help='num_confs if using rdkit conformers')
-    p.add_argument("--lig_slice", help = "Run only a slice of the provided ligand file. Like in python, this slice is HALF-OPEN. Should be provided in the format --lig_slice start,end")
-    p.add_argument("--lazy_dataload", dest = "lazy_dataload", action="store_true", default = None, help = "Turns on lazy dataloading. If on, will postpone rdkit parsing of each ligand until it is requested.")
-    p.add_argument("--no_lazy_dataload", dest = "lazy_dataload", action="store_false", default = None, help = "Turns off lazy dataloading. If on, will postpone rdkit parsing of each ligand until it is requested.")
+    p.add_argument('--use_rdkit_coords', action="store_true", help='override the rkdit usage behavior of the used model')
+    p.add_argument('--no_skip', dest = "skip_in_output", action = "store_false", help = 'skip input files that already have corresponding folders in the output directory. Used to resume a large interrupted computation')
     p.add_argument("--no_run_corrections", dest = "run_corrections", action = "store_false", help = "possibility of turning off running fast point cloud ligand fitting")
+    p.add_argument("-l", "--ligands_sdf", type=str, help = "A single sdf file containing all ligands to be screened when running in screening mode")
+    p.add_argument("-r", "--rec_pdb", type = str, help = "The receptor to dock the ligands in --ligands_sdf against")
+    p.add_argument("--n_workers_data_load", type = int, default = 4, help = "The number of cores used for loading the ligands and generating the graphs used as input to the model")
+    # p.add_argument("--lig_slice", help = "Run only a slice of the provided ligand file. Like in python, this slice is HALF-OPEN. Should be provided in the format --lig_slice start,end")
+    # p.add_argument("--lazy_dataload", dest = "lazy_dataload", action="store_true", default = None, help = "Turns on lazy dataloading. If on, will postpone rdkit parsing of each ligand until it is requested.")
+    # p.add_argument("--no_lazy_dataload", dest = "lazy_dataload", action="store_false", default = None, help = "Turns off lazy dataloading. If on, will postpone rdkit parsing of each ligand until it is requested.")
 
     cmdline_parser = deepcopy(p)
     args = p.parse_args(arglist)
@@ -114,12 +117,6 @@ def load_rec_and_model(args):
     # sys.exit()
     checkpoint = torch.load(args.checkpoint, map_location=device)
     dp = args.dataset_params
-
-    model = EquiBind(device = device, lig_input_edge_feats_dim = 15, rec_input_edge_feats_dim = 27, **args.model_parameters)
-    model.load_state_dict(checkpoint['model_state_dict'])
-    model.to(device)
-    model.eval()
-
     rec_path = args.rec_pdb
     rec, rec_coords, c_alpha_coords, n_coords, c_coords = get_receptor_inference(rec_path)
     rec_graph = get_rec_graph(rec, rec_coords, c_alpha_coords, n_coords, c_coords,
@@ -128,8 +125,22 @@ def load_rec_and_model(args):
                                 surface_graph_cutoff=dp['surface_graph_cutoff'],
                                 surface_mesh_cutoff=dp['surface_mesh_cutoff'],
                                 c_alpha_max_neighbors=dp['c_alpha_max_neighbors'])
+    return rec_graph
 
-    return rec_graph, model
+def load_model(args):
+    device = args.device
+    print(f"device = {device}")
+    
+    checkpoint = torch.load(args.checkpoint, map_location=device)
+
+    model = EquiBind(device = device, lig_input_edge_feats_dim = 15, rec_input_edge_feats_dim = 27, **args.model_parameters)
+    model.load_state_dict(checkpoint['model_state_dict'])
+    model.to(device)
+    model.eval()
+    return model
+
+def load_rec_and_model(args):
+    return load_rec(args), load_model(args)
 
 def run_batch(model, ligs, lig_coords, lig_graphs, rec_graphs, geometry_graphs, true_indices):
     try:
@@ -199,6 +210,8 @@ def write_while_inferring(dataloader, model, args):
     full_failed_path = os.path.join(args.output_directory, "failed.txt")
     full_success_path = os.path.join(args.output_directory, "success.txt")
 
+    has_any_work_been_done = False
+
     w_or_a = "a" if args.skip_in_output else "w"
     with torch.no_grad(), open(full_output_path, w_or_a) as file, open(
         full_failed_path, "a") as failed_file, open(full_success_path, w_or_a) as success_file:
@@ -229,21 +242,18 @@ def write_while_inferring(dataloader, model, args):
                     writer.write(mol)
                     success_file.write(f"{success[0]} {success[1]}")
                     success_file.write("\n")
+                    if not has_any_work_been_done:
+                        has_any_work_been_done = True
                     # print(f"written {mol.GetProp('_Name')} to output")
                 for failure in failures:
                     failed_file.write(f"{failure[0]} {failure[1]}")
                     failed_file.write("\n")
 
-def main(arglist = None):
-    args, cmdline_args = parse_arguments(arglist)
-    
-    args = get_default_args(args, cmdline_args)
-    assert args.output_directory, "An output directory should be specified"
-    assert args.ligands_sdf, "No ligand sdf specified"
-    assert args.rec_pdb, "No protein specified"
-    seed_all(args.seed)
-    
-    os.makedirs(args.output_directory, exist_ok = True)
+    return has_any_work_been_done
+
+def find_previous_work(args, create_output_dir = True):
+    if create_output_dir:
+        os.makedirs(args.output_directory, exist_ok = True)
 
     success_path = os.path.join(args.output_directory, "success.txt")
     failed_path = os.path.join(args.output_directory, "failed.txt")
@@ -256,23 +266,39 @@ def main(arglist = None):
     else:
         previous_work = None
     
-        
-    rec_graph, model = load_rec_and_model(args)
-    if args.lig_slice is not None:
-        lig_slice = tuple(map(int, args.lig_slice.split(",")))
-    else:
-        lig_slice = None
-    
-    lig_data = multiple_ligands.Ligands(args.ligands_sdf, rec_graph, args, slice = lig_slice, skips = previous_work, lazy = args.lazy_dataload)
-    lig_loader = DataLoader(lig_data, batch_size = args.batch_size, collate_fn = lig_data.collate, num_workers = args.n_workers_data_load)
+    return previous_work
 
-    full_failed_path = os.path.join(args.output_directory, "failed.txt")
-    with open(full_failed_path, "a" if args.skip_in_output else "w") as failed_file:
-        for failure in lig_data.failed_ligs:
-            failed_file.write(f"{failure[0]} {failure[1]}")
-            failed_file.write("\n")
+def main(arglist = None, lig_dataset = None, model = None, rec_graph = None, args = None):
+    if args is None:
+        args, cmdline_args = parse_arguments(arglist)
+        args = get_default_args(args, cmdline_args)
     
-    write_while_inferring(lig_loader, model, args)
+    assert args.output_directory, "An output directory should be specified"
+    assert args.ligands_sdf, "No ligand sdf specified"
+    assert args.rec_pdb, "No protein specified"
+    seed_all(args.seed)
+    
+    previous_work = find_previous_work(args, create_output_dir = True)
+    
+    # if args.lig_slice is not None:
+    #     lig_slice = tuple(map(int, args.lig_slice.split(",")))
+    # else:
+    #     lig_slice = None
+    
+    if rec_graph is None:
+        rec_graph = load_rec(args)
+    
+    if model is None:
+        model = load_model(args)
+    
+    if lig_dataset is None:
+        lig_dataset = multiple_ligands.Ligands(args.ligands_sdf, rec_graph, args, skips = previous_work, lig_load_workers = args.n_workers_data_load)
+    
+    
+    lig_loader = DataLoader(lig_dataset, batch_size = args.batch_size, collate_fn = lig_dataset.collate, num_workers = args.n_workers_data_load)
+    
+    return write_while_inferring(lig_loader, model, args)
+
 
 if __name__ == '__main__':
     main()
