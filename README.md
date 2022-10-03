@@ -132,9 +132,12 @@ Then you can run``python inference.py --config=configs_clean/inference_file_for_
 
 :page_with_curl: Paper [on arXiv](https://arxiv.org/abs/2202.05146)
 ```
-@misc{stark2022equibind,
-      title={EquiBind: Geometric Deep Learning for Drug Binding Structure Prediction}, 
-      author={Hannes Stärk and Octavian-Eugen Ganea and Lagnajit Pattanaik and Regina Barzilay and Tommi Jaakkola},
-      year={2022}
+@inproceedings{equibind,
+  title={Equibind: Geometric deep learning for drug binding structure prediction},
+  author={St{\"a}rk, Hannes and Ganea, Octavian and Pattanaik, Lagnajit and Barzilay, Regina and Jaakkola, Tommi},
+  booktitle={International Conference on Machine Learning},
+  pages={20503--20521},
+  year={2022},
+  organization={PMLR}
 }
 ```
