@@ -3,6 +3,9 @@
 
 ### [Paper on arXiv](https://arxiv.org/abs/2202.05146)
 
+**Before using EquiBind, also consider checking out our new approach called DiffDock which improves over EquiBind in multiple ways.
+The DiffDock [GitHub](https://github.com/gcorso/DiffDock) and [paper](https://arxiv.org/abs/2210.01776).**
+
 EquiBind, is a
 SE(3)-equivariant geometric deep learning model
 performing direct-shot prediction of both i) the receptor binding location (blind docking) and ii) the
