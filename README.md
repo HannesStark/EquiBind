@@ -22,12 +22,11 @@ or [social media](https://hannes-stark.com/) or Octavian Ganea via [oct@mit.edu]
 
 # Dataset
 
-Our preprocessed data (see dataset section in the paper Appendix) is available from [zenodo](https://zenodo.org/record/6408497). \
+Our preprocessed data (see dataset section in the paper Appendix) is no longer available on [zenodo](https://zenodo.org/record/6408497). \
+The reason is that the PDBBind license does not allow for redistributing the dataset.
 The files in `data` contain the names for the time-based data split.
 
-If you want to train one of our models with the data then: 
-1. download it from [zenodo](https://zenodo.org/record/6408497) 
-2. unzip the directory and place it into `data` such that you have the path `data/PDBBind`
+This means that now you have to download the data from the PDBBind website (http://www.pdbbind.org.cn/) and place it into `data` such that you have the path `data/PDBBind`
 
 
 # Use provided model weights to predict binding structure of your own protein-ligand pairs:
